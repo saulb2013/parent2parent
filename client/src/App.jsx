@@ -10,6 +10,10 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import NotFound from './pages/NotFound';
+import About from './pages/About';
+import SafetyTips from './pages/SafetyTips';
+import FAQs from './pages/FAQs';
+import Contact from './pages/Contact';
 
 export default function App() {
   return (
@@ -26,6 +30,10 @@ export default function App() {
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/safety-tips" element={<SafetyTips />} />
+              <Route path="/faqs" element={<FAQs />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
