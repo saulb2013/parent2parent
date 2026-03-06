@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -37,19 +38,21 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /api/users/:id
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) => {
   const db = req.app.get('db');
   if (req.user.id !== parseInt(req.params.id)) {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
   const { name, province, city, phone, bio } = req.body;
+  const avatar_url = req.file ? req.file.path : null;
   try {
     await db.query(
       `UPDATE users SET name = COALESCE($1, name), province = COALESCE($2, province),
-       city = COALESCE($3, city), phone = COALESCE($4, phone), bio = COALESCE($5, bio)
-       WHERE id = $6`,
-      [name, province, city, phone, bio, req.params.id]
+       city = COALESCE($3, city), phone = COALESCE($4, phone), bio = COALESCE($5, bio),
+       avatar_url = COALESCE($6, avatar_url)
+       WHERE id = $7`,
+      [name, province, city, phone, bio, avatar_url, req.params.id]
     );
     res.json({ message: 'Profile updated' });
   } catch (err) {
