@@ -2,25 +2,34 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Create reusable transporter
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+// Send email via Brevo HTTP API (avoids SMTP port blocking on Render)
+async function sendBrevoEmail({ to, subject, html }) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    body: JSON.stringify({
+      sender: {
+        name: 'Parent2Parent',
+        email: process.env.SMTP_FROM || 'noreply@parent2parent.co.za',
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo API error ${res.status}: ${err}`);
+  }
+  return res.json();
 }
 
 router.post('/register', async (req, res) => {
@@ -139,11 +148,9 @@ router.post('/forgot-password', async (req, res) => {
     // Send response immediately, email in background
     res.json({ message: 'If that email exists, a reset link has been sent.' });
 
-    if (process.env.SMTP_HOST) {
+    if (process.env.BREVO_API_KEY) {
       try {
-        const transporter = getTransporter();
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || '"Parent2Parent" <noreply@parent2parent.co.za>',
+        await sendBrevoEmail({
           to: email,
           subject: 'Reset your Parent2Parent password',
           html: `
