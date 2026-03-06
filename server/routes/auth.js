@@ -17,6 +17,9 @@ function getTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 }
 
@@ -133,31 +136,37 @@ router.post('/forgot-password', async (req, res) => {
     const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
+    // Send response immediately, email in background
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+
     if (process.env.SMTP_HOST) {
-      const transporter = getTransporter();
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Parent2Parent" <noreply@parent2parent.co.za>',
-        to: email,
-        subject: 'Reset your Parent2Parent password',
-        html: `
-          <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px;">
-            <h2 style="color: #2D6A4F; font-size: 24px;">Reset Your Password</h2>
-            <p style="color: #555; line-height: 1.6;">Hi ${rows[0].name},</p>
-            <p style="color: #555; line-height: 1.6;">We received a request to reset your Parent2Parent password. Click the button below to choose a new one:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" style="background: #F4A261; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">Reset Password</a>
+      try {
+        const transporter = getTransporter();
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"Parent2Parent" <noreply@parent2parent.co.za>',
+          to: email,
+          subject: 'Reset your Parent2Parent password',
+          html: `
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px;">
+              <h2 style="color: #2D6A4F; font-size: 24px;">Reset Your Password</h2>
+              <p style="color: #555; line-height: 1.6;">Hi ${rows[0].name},</p>
+              <p style="color: #555; line-height: 1.6;">We received a request to reset your Parent2Parent password. Click the button below to choose a new one:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" style="background: #F4A261; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">Reset Password</a>
+              </div>
+              <p style="color: #999; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="color: #bbb; font-size: 12px;">Parent2Parent &mdash; Previously loved. Ready for more.</p>
             </div>
-            <p style="color: #999; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #bbb; font-size: 12px;">Parent2Parent &mdash; Previously loved. Ready for more.</p>
-          </div>
-        `,
-      });
+          `,
+        });
+        console.log(`[EMAIL] Reset email sent to ${email}`);
+      } catch (emailErr) {
+        console.error('[EMAIL] Failed to send reset email:', emailErr.message);
+      }
     } else {
       console.log(`[DEV] Password reset link for ${email}: ${resetUrl}`);
     }
-
-    res.json({ message: 'If that email exists, a reset link has been sent.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to process request' });
