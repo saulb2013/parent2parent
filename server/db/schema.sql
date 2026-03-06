@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   city TEXT,
   phone TEXT,
   bio TEXT,
+  reset_token TEXT,
+  reset_token_expires TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

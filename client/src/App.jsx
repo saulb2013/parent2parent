@@ -16,6 +16,8 @@ import SafetyTips from './pages/SafetyTips';
 import FAQs from './pages/FAQs';
 import Contact from './pages/Contact';
 import EditListing from './pages/EditListing';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
@@ -34,6 +36,8 @@ export default function App() {
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/about" element={<About />} />
               <Route path="/safety-tips" element={<SafetyTips />} />
               <Route path="/faqs" element={<FAQs />} />

@@ -1,9 +1,24 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Create reusable transporter
+function getTransporter() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
 
 router.post('/register', async (req, res) => {
   const { name, email, password, province, city, phone } = req.body;
@@ -92,6 +107,90 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/logout', (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out' });
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const db = req.app.get('db');
+
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  try {
+    const { rows } = await db.query('SELECT id, name FROM users WHERE email = $1', [email]);
+
+    // Always return success to prevent email enumeration
+    if (!rows[0]) return res.json({ message: 'If that email exists, a reset link has been sent.' });
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.query(
+      'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+      [resetToken, expires, rows[0].id]
+    );
+
+    const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+    if (process.env.SMTP_HOST) {
+      const transporter = getTransporter();
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || '"Parent2Parent" <noreply@parent2parent.co.za>',
+        to: email,
+        subject: 'Reset your Parent2Parent password',
+        html: `
+          <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px;">
+            <h2 style="color: #2D6A4F; font-size: 24px;">Reset Your Password</h2>
+            <p style="color: #555; line-height: 1.6;">Hi ${rows[0].name},</p>
+            <p style="color: #555; line-height: 1.6;">We received a request to reset your Parent2Parent password. Click the button below to choose a new one:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="background: #F4A261; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">Reset Password</a>
+            </div>
+            <p style="color: #999; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #bbb; font-size: 12px;">Parent2Parent &mdash; Previously loved. Ready for more.</p>
+          </div>
+        `,
+      });
+    } else {
+      console.log(`[DEV] Password reset link for ${email}: ${resetUrl}`);
+    }
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  const db = req.app.get('db');
+
+  if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  try {
+    const { rows } = await db.query(
+      'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
+      [token]
+    );
+
+    if (!rows[0]) return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+
+    const password_hash = bcrypt.hashSync(password, 10);
+    await db.query(
+      'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+      [password_hash, rows[0].id]
+    );
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
 });
 
 module.exports = router;
