@@ -152,7 +152,7 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
       for (let i = 0; i < req.files.length; i++) {
         await db.query(
           'INSERT INTO listing_images (listing_id, url, is_primary, display_order) VALUES ($1,$2,$3,$4)',
-          [listingId, `/uploads/${req.files[i].filename}`, i === 0, i]
+          [listingId, req.files[i].path, i === 0, i]
         );
       }
     }
