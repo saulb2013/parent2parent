@@ -15,6 +15,7 @@ import About from './pages/About';
 import SafetyTips from './pages/SafetyTips';
 import FAQs from './pages/FAQs';
 import Contact from './pages/Contact';
+import EditListing from './pages/EditListing';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/browse" element={<Browse />} />
               <Route path="/listings/:id" element={<ListingDetail />} />
+              <Route path="/listings/:id/edit" element={<EditListing />} />
               <Route path="/sell" element={<CreateListing />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/login" element={<Login />} />

@@ -165,7 +165,7 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
 });
 
 // PUT /api/listings/:id
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, upload.array('images', 6), async (req, res) => {
   const db = req.app.get('db');
   try {
     const { rows } = await db.query('SELECT * FROM listings WHERE id = $1', [req.params.id]);
@@ -181,8 +181,29 @@ router.put('/:id', authenticateToken, async (req, res) => {
        category_id = COALESCE($6, category_id), province = COALESCE($7, province), city = COALESCE($8, city),
        status = COALESCE($9, status), updated_at = NOW()
        WHERE id = $10`,
-      [title, description, price ? parseInt(price) : null, negotiable != null ? !!negotiable : null, condition, category_id ? parseInt(category_id) : null, province, city, status, req.params.id]
+      [title, description, price ? parseInt(price) : null, negotiable != null ? (negotiable === 'true' || negotiable === '1' || negotiable === true) : null, condition, category_id ? parseInt(category_id) : null, province, city, status, req.params.id]
     );
+
+    // Handle new image uploads
+    if (req.files && req.files.length > 0) {
+      const { rows: existing } = await db.query(
+        'SELECT MAX(display_order) as max_order FROM listing_images WHERE listing_id = $1',
+        [req.params.id]
+      );
+      let order = (existing[0].max_order ?? -1) + 1;
+      const { rows: countRows } = await db.query(
+        'SELECT COUNT(*) as cnt FROM listing_images WHERE listing_id = $1',
+        [req.params.id]
+      );
+      const hasPrimary = parseInt(countRows[0].cnt) > 0;
+
+      for (let i = 0; i < req.files.length; i++) {
+        await db.query(
+          'INSERT INTO listing_images (listing_id, url, is_primary, display_order) VALUES ($1,$2,$3,$4)',
+          [req.params.id, req.files[i].path, !hasPrimary && i === 0, order + i]
+        );
+      }
+    }
 
     res.json({ message: 'Listing updated' });
   } catch (err) {
@@ -205,6 +226,35 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete listing' });
+  }
+});
+
+// DELETE /api/listings/:id/images/:imageId
+router.delete('/:id/images/:imageId', authenticateToken, async (req, res) => {
+  const db = req.app.get('db');
+  try {
+    const { rows } = await db.query('SELECT * FROM listings WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Listing not found' });
+    if (rows[0].seller_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+
+    const { rows: imgRows } = await db.query(
+      'DELETE FROM listing_images WHERE id = $1 AND listing_id = $2 RETURNING is_primary',
+      [req.params.imageId, req.params.id]
+    );
+
+    // If deleted image was primary, promote the next one
+    if (imgRows[0]?.is_primary) {
+      await db.query(
+        `UPDATE listing_images SET is_primary = TRUE
+         WHERE id = (SELECT id FROM listing_images WHERE listing_id = $1 ORDER BY display_order LIMIT 1)`,
+        [req.params.id]
+      );
+    }
+
+    res.json({ message: 'Image deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete image' });
   }
 });
 

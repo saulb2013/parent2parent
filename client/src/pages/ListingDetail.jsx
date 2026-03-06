@@ -109,15 +109,28 @@ export default function ListingDetail() {
               <Badge type="condition" value={listing.condition} className="mb-3" />
               <h1 className="font-display text-3xl font-bold text-gray-900">{listing.title}</h1>
             </div>
-            <button
-              onClick={toggleSave}
-              className={`p-2 rounded-full transition-colors ${saved ? 'text-accent-dark' : 'text-gray-400 hover:text-accent-dark'}`}
-              title={saved ? 'Unsave' : 'Save listing'}
-            >
-              <svg className="w-7 h-7" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              {user?.id === listing.seller_id && (
+                <Link
+                  to={`/listings/${id}/edit`}
+                  className="p-2 rounded-full text-gray-400 hover:text-primary transition-colors"
+                  title="Edit listing"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </Link>
+              )}
+              <button
+                onClick={toggleSave}
+                className={`p-2 rounded-full transition-colors ${saved ? 'text-accent-dark' : 'text-gray-400 hover:text-accent-dark'}`}
+                title={saved ? 'Unsave' : 'Save listing'}
+              >
+                <svg className="w-7 h-7" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-baseline gap-3 mt-4">
