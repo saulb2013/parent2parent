@@ -23,6 +23,7 @@ router.get('/:id', async (req, res) => {
       `SELECT
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count,
         SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END) as sold_count,
+        SUM(CASE WHEN status = 'hidden' THEN 1 ELSE 0 END) as hidden_count,
         COUNT(*) as total_count
        FROM listings WHERE seller_id = $1`,
       [req.params.id]

@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS listings (
   seller_id INTEGER REFERENCES users(id),
   province TEXT NOT NULL,
   city TEXT NOT NULL,
-  status TEXT DEFAULT 'active' CHECK(status IN ('active','sold','archived')),
+  status TEXT DEFAULT 'active' CHECK(status IN ('active','sold','archived','hidden')),
   views INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
