@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -7,17 +8,38 @@ const router = express.Router();
 const STITCH_TOKEN_URL = 'https://secure.stitch.money/connect/token';
 const STITCH_API_URL = 'https://api.stitch.money/graphql';
 
-// Get Stitch access token using client credentials
+// Build a JWT client assertion for Stitch OAuth2
+function buildClientAssertion() {
+  const clientId = process.env.STITCH_CLIENT_ID;
+  const clientSecret = process.env.STITCH_CLIENT_SECRET;
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: clientId,
+    sub: clientId,
+    aud: STITCH_TOKEN_URL,
+    iat: now,
+    exp: now + 300, // 5 minutes
+    jti: crypto.randomUUID(),
+  };
+
+  return jwt.sign(payload, clientSecret, { algorithm: 'HS256' });
+}
+
+// Get Stitch access token using client credentials + JWT assertion
 async function getStitchToken() {
+  const clientAssertion = buildClientAssertion();
+
   const res = await fetch(STITCH_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: process.env.STITCH_CLIENT_ID,
-      client_secret: process.env.STITCH_CLIENT_SECRET,
-      audience: 'https://secure.stitch.money/connect/token',
       scope: 'client_paymentinitiationrequest',
+      audience: 'https://secure.stitch.money/connect/token',
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: clientAssertion,
     }),
   });
 
