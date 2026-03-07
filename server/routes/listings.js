@@ -40,6 +40,10 @@ router.get('/', optionalAuth, async (req, res) => {
     params.push(`%${search}%`);
     idx++;
   }
+  if (req.user) {
+    where.push(`l.seller_id != $${idx++}`);
+    params.push(req.user.id);
+  }
 
   let orderBy = 'l.created_at DESC';
   if (sort === 'price_asc') orderBy = 'l.price ASC';
