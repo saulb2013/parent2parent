@@ -105,7 +105,7 @@ router.post('/shipment', authenticateToken, async (req, res) => {
     // Get order with seller and buyer info
     const { rows: orders } = await pool.query(
       `SELECT o.*,
-        seller.name as seller_name, seller.phone as seller_phone, seller.city as seller_city, seller.province as seller_province,
+        seller.name as seller_name, seller.phone as seller_phone, seller.email as seller_email, seller.city as seller_city, seller.province as seller_province,
         buyer.name as buyer_name, buyer.phone as buyer_phone_profile, buyer.email as buyer_email,
         l.title as listing_title
        FROM orders o
@@ -146,7 +146,7 @@ router.post('/shipment', authenticateToken, async (req, res) => {
       collection_contact: {
         name: order.seller_name,
         mobile_number: sellerPhone,
-        email: '',
+        email: order.seller_email || '',
       },
       delivery_address: {
         type: 'residential',
