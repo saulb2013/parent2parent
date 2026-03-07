@@ -32,7 +32,7 @@ export default function PaymentReturn() {
             return;
           }
 
-          if (data.status === 'paid' || data.paymentStatus === 'PaymentInitiationRequestCompleted') {
+          if (data.status === 'paid' || data.paymentStatus === 'PAID' || data.paymentStatus === 'SETTLED') {
             setStatus('paid');
             // Fetch full order details
             fetch(`/api/orders/${orderId}`, { credentials: 'include' })
@@ -41,12 +41,12 @@ export default function PaymentReturn() {
             return;
           }
 
-          if (data.paymentStatus === 'cancelled') {
+          if (data.paymentStatus === 'cancelled' || data.paymentStatus === 'CANCELLED') {
             setStatus('cancelled');
             return;
           }
 
-          if (data.paymentStatus === 'expired') {
+          if (data.paymentStatus === 'expired' || data.paymentStatus === 'EXPIRED') {
             setStatus('expired');
             return;
           }

@@ -1,45 +1,19 @@
 const express = require('express');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-const STITCH_TOKEN_URL = 'https://secure.stitch.money/connect/token';
-const STITCH_API_URL = 'https://api.stitch.money/graphql';
+const STITCH_BASE_URL = 'https://express.stitch.money/api/v1';
 
-// Build a JWT client assertion for Stitch OAuth2
-function buildClientAssertion() {
-  const clientId = process.env.STITCH_CLIENT_ID;
-  const clientSecret = process.env.STITCH_CLIENT_SECRET;
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: clientId,
-    sub: clientId,
-    aud: STITCH_TOKEN_URL,
-    iat: now,
-    exp: now + 300, // 5 minutes
-    jti: crypto.randomUUID(),
-  };
-
-  return jwt.sign(payload, clientSecret, { algorithm: 'HS256' });
-}
-
-// Get Stitch access token using client credentials + JWT assertion
+// Get Stitch Express access token
 async function getStitchToken() {
-  const clientAssertion = buildClientAssertion();
-
-  const res = await fetch(STITCH_TOKEN_URL, {
+  const res = await fetch(`${STITCH_BASE_URL}/token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: process.env.STITCH_CLIENT_ID,
-      scope: 'client_paymentinitiationrequest',
-      audience: 'https://secure.stitch.money/connect/token',
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-      client_assertion: clientAssertion,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      clientId: process.env.STITCH_CLIENT_ID,
+      clientSecret: process.env.STITCH_CLIENT_SECRET,
+      scope: 'client_paymentrequest',
     }),
   });
 
@@ -49,26 +23,7 @@ async function getStitchToken() {
   }
 
   const data = await res.json();
-  return data.access_token;
-}
-
-// Execute Stitch GraphQL query
-async function stitchQuery(token, query, variables) {
-  const res = await fetch(STITCH_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  const data = await res.json();
-  if (data.errors) {
-    console.error('Stitch GraphQL errors:', JSON.stringify(data.errors, null, 2));
-    throw new Error(data.errors[0]?.message || 'Stitch API error');
-  }
-  return data.data;
+  return data.accessToken;
 }
 
 // Initiate payment for an order
@@ -77,9 +32,11 @@ router.post('/initiate', authenticateToken, async (req, res) => {
     const pool = req.app.get('db');
     const { orderId } = req.body;
 
-    // Get order
+    // Get order + buyer info
     const { rows: orders } = await pool.query(
-      'SELECT * FROM orders WHERE id = $1 AND buyer_id = $2',
+      `SELECT o.*, u.name as buyer_name, u.email as buyer_email, u.phone as buyer_phone_profile
+       FROM orders o JOIN users u ON o.buyer_id = u.id
+       WHERE o.id = $1 AND o.buyer_id = $2`,
       [orderId, req.user.id]
     );
 
@@ -93,74 +50,58 @@ router.post('/initiate', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Order is not pending payment' });
     }
 
-    // Get listing title for reference
-    const { rows: listings } = await pool.query(
-      'SELECT title FROM listings WHERE id = $1',
-      [order.listing_id]
-    );
-
     const token = await getStitchToken();
-    const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
-    const nonce = crypto.randomBytes(16).toString('hex');
 
-    // Amount in rands (order stores cents as integers — price is in cents)
-    // Our DB stores price in cents (e.g. 15000 = R150.00)
-    const amountInRands = (order.total_price / 100).toFixed(2);
+    // Stitch Express expects amount in cents (integer)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
 
-    const mutation = `
-      mutation CreatePaymentRequest(
-        $amount: MoneyInput!,
-        $payerReference: String!,
-        $beneficiaryReference: String!,
-        $externalReference: String,
-        $merchant: String
-      ) {
-        clientPaymentInitiationRequestCreate(input: {
-          amount: $amount,
-          payerReference: $payerReference,
-          beneficiaryReference: $beneficiaryReference,
-          externalReference: $externalReference,
-          merchant: $merchant
-        }) {
-          paymentInitiationRequest {
-            id
-            url
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      amount: {
-        quantity: amountInRands,
-        currency: 'ZAR',
-      },
-      payerReference: `P2P-${order.id}`,
-      beneficiaryReference: `Order #${order.id}`,
-      externalReference: `order-${order.id}-${nonce}`,
-      merchant: 'Parent2Parent',
+    const paymentBody = {
+      amount: order.total_price,
+      merchantReference: `P2P-Order-${order.id}`,
+      expiresAt,
+      payerName: order.buyer_name || 'Parent2Parent Buyer',
     };
 
-    const data = await stitchQuery(token, mutation, variables);
-    const paymentRequest = data.clientPaymentInitiationRequestCreate?.paymentInitiationRequest;
+    if (order.buyer_email) {
+      paymentBody.payerEmailAddress = order.buyer_email;
+    }
 
-    if (!paymentRequest?.url) {
-      throw new Error('No payment URL returned from Stitch');
+    const phone = order.buyer_phone || order.buyer_phone_profile;
+    if (phone) {
+      // Ensure E164 format
+      let formatted = phone.replace(/[^0-9+]/g, '');
+      if (formatted.startsWith('0')) formatted = '+27' + formatted.slice(1);
+      if (!formatted.startsWith('+')) formatted = '+' + formatted;
+      paymentBody.payerPhoneNumber = formatted;
+    }
+
+    const payRes = await fetch(`${STITCH_BASE_URL}/payment-links`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(paymentBody),
+    });
+
+    if (!payRes.ok) {
+      const errText = await payRes.text();
+      throw new Error(`Stitch payment error ${payRes.status}: ${errText}`);
+    }
+
+    const payment = await payRes.json();
+
+    if (!payment.link) {
+      throw new Error('No payment link returned from Stitch');
     }
 
     // Store Stitch payment ID on the order
     await pool.query(
       'UPDATE orders SET payment_reference = $1, updated_at = NOW() WHERE id = $2',
-      [paymentRequest.id, order.id]
+      [payment.id, order.id]
     );
 
-    // Build redirect URL — Stitch will redirect here after payment
-    const redirectUrl = `${clientUrl}/payment/return?orderId=${order.id}&paymentId=${paymentRequest.id}`;
-
-    // The Stitch payment URL with redirect
-    const paymentUrl = `${paymentRequest.url}?redirect_uri=${encodeURIComponent(redirectUrl)}`;
-
-    res.json({ paymentUrl, paymentId: paymentRequest.id });
+    res.json({ paymentUrl: payment.link, paymentId: payment.id });
   } catch (err) {
     console.error('Payment initiation error:', err);
     res.status(500).json({ error: err.message || 'Failed to initiate payment' });
@@ -186,84 +127,53 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
       return res.json({ status: 'pending', paymentStatus: null });
     }
 
-    // Query Stitch for payment status
+    // Query Stitch Express for payment status
     const token = await getStitchToken();
 
-    const query = `
-      query GetPaymentStatus($paymentRequestId: ID!) {
-        node(id: $paymentRequestId) {
-          ... on PaymentInitiationRequest {
-            id
-            state {
-              __typename
-              ... on PaymentInitiationRequestCompleted {
-                date
-                amount {
-                  quantity
-                  currency
-                }
-                payer {
-                  ... on PaymentInitiationBankAccountPayer {
-                    accountNumber
-                    bankId
-                  }
-                }
-              }
-              ... on PaymentInitiationRequestCancelled {
-                date
-                reason
-              }
-              ... on PaymentInitiationRequestExpired {
-                date
-              }
-            }
-          }
-        }
-      }
-    `;
+    const statusRes = await fetch(`${STITCH_BASE_URL}/payment-links/${order.payment_reference}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
 
-    const data = await stitchQuery(token, query, { paymentRequestId: order.payment_reference });
-    const paymentState = data.node?.state?.__typename;
+    if (!statusRes.ok) {
+      throw new Error(`Stitch status check failed: ${statusRes.status}`);
+    }
+
+    const payment = await statusRes.json();
+    const stitchStatus = payment.status; // PENDING, PAID, SETTLED, EXPIRED, CANCELLED
 
     // Update order status based on payment state
-    if (paymentState === 'PaymentInitiationRequestCompleted' && order.status === 'pending') {
+    if ((stitchStatus === 'PAID' || stitchStatus === 'SETTLED') && order.status === 'pending') {
       await pool.query(
         "UPDATE orders SET status = 'paid', updated_at = NOW() WHERE id = $1",
         [order.id]
       );
-      // Mark listing as sold
       await pool.query(
         "UPDATE listings SET status = 'sold', updated_at = NOW() WHERE id = $1",
         [order.listing_id]
       );
-      return res.json({ status: 'paid', paymentStatus: paymentState });
+      return res.json({ status: 'paid', paymentStatus: stitchStatus });
     }
 
-    if (paymentState === 'PaymentInitiationRequestCancelled') {
+    if (stitchStatus === 'CANCELLED') {
       return res.json({ status: order.status, paymentStatus: 'cancelled' });
     }
 
-    if (paymentState === 'PaymentInitiationRequestExpired') {
+    if (stitchStatus === 'EXPIRED') {
       return res.json({ status: order.status, paymentStatus: 'expired' });
     }
 
-    res.json({ status: order.status, paymentStatus: paymentState || 'pending' });
+    res.json({ status: order.status, paymentStatus: stitchStatus || 'pending' });
   } catch (err) {
     console.error('Payment status error:', err);
     res.status(500).json({ error: 'Failed to check payment status' });
   }
 });
 
-// Webhook from Stitch (no auth — verified by Stitch signature)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Webhook from Stitch
+router.post('/webhook', express.json(), async (req, res) => {
   try {
-    // Acknowledge immediately
     res.status(200).json({ received: true });
-
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    console.log('[STITCH WEBHOOK]', JSON.stringify(body));
-
-    // TODO: Verify webhook signature and update order status
+    console.log('[STITCH WEBHOOK]', JSON.stringify(req.body));
   } catch (err) {
     console.error('Webhook error:', err);
   }
