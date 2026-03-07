@@ -18,6 +18,8 @@ import Contact from './pages/Contact';
 import EditListing from './pages/EditListing';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Checkout from './pages/Checkout';
+import OrderConfirmation from './pages/OrderConfirmation';
 
 export default function App() {
   return (
@@ -38,6 +40,8 @@ export default function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/orders/:id" element={<OrderConfirmation />} />
               <Route path="/about" element={<About />} />
               <Route path="/safety-tips" element={<SafetyTips />} />
               <Route path="/faqs" element={<FAQs />} />

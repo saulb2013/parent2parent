@@ -52,3 +52,25 @@ CREATE TABLE IF NOT EXISTS saved_listings (
   saved_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (user_id, listing_id)
 );
+
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  buyer_id INTEGER REFERENCES users(id) NOT NULL,
+  listing_id INTEGER REFERENCES listings(id) NOT NULL,
+  seller_id INTEGER REFERENCES users(id) NOT NULL,
+  item_price INTEGER NOT NULL,
+  platform_fee INTEGER NOT NULL,
+  total_price INTEGER NOT NULL,
+  delivery_address TEXT NOT NULL,
+  delivery_lat DOUBLE PRECISION,
+  delivery_lng DOUBLE PRECISION,
+  delivery_city TEXT,
+  delivery_province TEXT,
+  delivery_postal_code TEXT,
+  buyer_phone TEXT,
+  buyer_notes TEXT,
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid','shipped','delivered','cancelled','refunded')),
+  payment_reference TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
