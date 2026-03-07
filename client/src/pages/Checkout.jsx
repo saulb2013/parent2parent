@@ -20,6 +20,7 @@ export default function Checkout() {
 
   const [form, setForm] = useState({
     deliveryAddress: '',
+    deliveryUnit: '',
     deliveryLat: null,
     deliveryLng: null,
     deliveryCity: '',
@@ -145,6 +146,9 @@ export default function Checkout() {
         body: JSON.stringify({
           listingId: parseInt(id),
           ...form,
+          deliveryAddress: form.deliveryUnit
+            ? `${form.deliveryUnit}, ${form.deliveryAddress}`
+            : form.deliveryAddress,
         }),
       });
 
@@ -237,6 +241,19 @@ export default function Checkout() {
                       Address autocomplete unavailable — type your full address manually
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unit / Apartment / Building (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.deliveryUnit}
+                    onChange={(e) => setForm(prev => ({ ...prev, deliveryUnit: e.target.value }))}
+                    placeholder="e.g. Unit 4, Block B, Sunset Heights"
+                    className="input w-full"
+                  />
                 </div>
 
                 {form.deliveryCity && (
