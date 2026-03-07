@@ -16,7 +16,8 @@ async function getStitchToken() {
       grant_type: 'client_credentials',
       client_id: process.env.STITCH_CLIENT_ID,
       client_secret: process.env.STITCH_CLIENT_SECRET,
-      scope: 'client_paymentrequest',
+      audience: 'https://secure.stitch.money/connect/token',
+      scope: 'client_paymentinitiationrequest',
     }),
   });
 
