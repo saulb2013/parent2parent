@@ -537,8 +537,8 @@ export default function Profile() {
                       className={`card p-4 flex items-center gap-4 transition-shadow ${isNew ? 'ring-2 ring-amber-300' : 'hover:shadow-md'} ${tab === 'hidden' ? 'opacity-60' : ''}`}
                     >
                       <Link to={`/listings/${listing.id}`} className="flex items-center gap-4 flex-1 min-w-0">
-                        {listing.images?.[0]?.url ? (
-                          <img src={listing.images[0].url} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100 shrink-0" />
+                        {listing.image_url ? (
+                          <img src={listing.image_url} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100 shrink-0" />
                         ) : (
                           <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
                             <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -556,8 +556,8 @@ export default function Profile() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">
-                            {listing.condition} &middot; {listing.city}, {listing.province}
+                          <p className="text-sm text-gray-500 truncate">
+                            {listing.description || 'No description'}
                           </p>
                         </div>
                       </Link>
