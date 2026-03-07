@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.shiplogic.com';
+// Note: sandbox vs production is determined by the API key, not the URL
 const TCG_API_KEY = process.env.TCG_API_KEY;
 
 async function tcgFetch(endpoint, options = {}) {
