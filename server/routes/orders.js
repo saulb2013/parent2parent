@@ -43,6 +43,16 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'You cannot buy your own listing' });
     }
 
+    // Reuse existing pending order for same buyer + listing
+    const { rows: existing } = await pool.query(
+      "SELECT * FROM orders WHERE buyer_id = $1 AND listing_id = $2 AND status = 'pending'",
+      [buyerId, listingId]
+    );
+
+    if (existing.length) {
+      return res.status(201).json({ order: existing[0] });
+    }
+
     const itemPrice = listing.price;
     const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
     const totalPrice = itemPrice + platformFee;
