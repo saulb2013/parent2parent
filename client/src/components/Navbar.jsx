@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,7 +6,6 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const profileRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,17 +35,10 @@ export default function Navbar() {
     navigate('/');
   };
 
-  // Close profile dropdown on outside click
-  useEffect(() => {
-    function handleClick(e) {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
-        setProfileOpen(false);
-        setShowLogoutConfirm(false);
-      }
-    }
-    if (profileOpen || showLogoutConfirm) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [profileOpen, showLogoutConfirm]);
+  const closeDropdown = () => {
+    setProfileOpen(false);
+    setShowLogoutConfirm(false);
+  };
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -130,7 +122,7 @@ export default function Navbar() {
                 )}
 
                 {/* Profile avatar with dropdown */}
-                <div className="relative" ref={profileRef}>
+                <div className="relative">
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
                     className="shrink-0 focus:outline-none"
@@ -145,51 +137,54 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {profileOpen && !showLogoutConfirm && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
-                      <div className="px-4 py-2 border-b border-border">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={handleEditProfile}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit Profile
-                      </button>
-                      <button
-                        onClick={() => setShowLogoutConfirm(true)}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Log out
-                      </button>
-                    </div>
-                  )}
-
-                  {showLogoutConfirm && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
-                      <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowLogoutConfirm(false)}
-                          className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-                        >
-                          Log out
-                        </button>
-                      </div>
-                    </div>
+                  {(profileOpen || showLogoutConfirm) && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={closeDropdown} />
+                      {!showLogoutConfirm ? (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
+                          <div className="px-4 py-2 border-b border-border">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          </div>
+                          <button
+                            onClick={handleEditProfile}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit Profile
+                          </button>
+                          <button
+                            onClick={() => setShowLogoutConfirm(true)}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Log out
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
+                          <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={closeDropdown}
+                              className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleLogout}
+                              className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                            >
+                              Log out
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>
@@ -211,7 +206,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-3">
             {user && (
-              <div className="relative" ref={!mobileOpen ? profileRef : undefined}>
+              <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="shrink-0"
@@ -225,50 +220,53 @@ export default function Navbar() {
                   />
                 </button>
 
-                {profileOpen && !mobileOpen && !showLogoutConfirm && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
-                    <div className="px-4 py-2 border-b border-border">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
-                    </div>
-                    <button
-                      onClick={handleEditProfile}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Profile
-                    </button>
-                    <button
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Log out
-                    </button>
-                  </div>
-                )}
-
-                {showLogoutConfirm && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
-                    <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowLogoutConfirm(false)}
-                        className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-                      >
-                        Log out
-                      </button>
-                    </div>
-                  </div>
+                {(profileOpen || showLogoutConfirm) && !mobileOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={closeDropdown} />
+                    {!showLogoutConfirm ? (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
+                        <div className="px-4 py-2 border-b border-border">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                        </div>
+                        <button
+                          onClick={handleEditProfile}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit Profile
+                        </button>
+                        <button
+                          onClick={() => setShowLogoutConfirm(true)}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Log out
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
+                        <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={closeDropdown}
+                            className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleLogout}
+                            className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                          >
+                            Log out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
