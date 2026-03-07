@@ -167,19 +167,32 @@ export default function Checkout() {
         submitData.deliveryProvince = listing.province;
       }
 
-      const res = await fetch('/api/orders', {
+      // Step 1: Create the order
+      const orderRes = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(submitData),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error);
 
-      navigate(`/orders/${data.order.id}`, { state: { newOrder: true } });
+      // Step 2: Immediately initiate payment — redirect to Stitch
+      const payRes = await fetch('/api/payments/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ orderId: orderData.order.id }),
+      });
+
+      const payData = await payRes.json();
+      if (!payRes.ok) throw new Error(payData.error || 'Failed to initiate payment');
+
+      // Redirect to Stitch payment page
+      window.location.href = payData.paymentUrl;
     } catch (err) {
-      setError(err.message || 'Failed to create order');
+      setError(err.message || 'Failed to process checkout');
     } finally {
       setSubmitting(false);
     }
@@ -465,7 +478,7 @@ export default function Checkout() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Pay {formatPrice(totalPrice)}
+                    Pay {formatPrice(totalPrice)} — Secure EFT
                   </>
                 )}
               </button>

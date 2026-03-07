@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
+import { formatPrice } from '../utils/formatPrice';
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -15,6 +16,7 @@ export default function Profile() {
   const [listings, setListings] = useState([]);
   const [stats, setStats] = useState({ active_count: 0, sold_count: 0, hidden_count: 0, total_count: 0 });
   const [tab, setTab] = useState('active');
+  const [mode, setMode] = useState('seller'); // 'buyer' or 'seller'
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,6 +24,12 @@ export default function Profile() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const fileRef = useRef();
+
+  // Buyer state
+  const [orders, setOrders] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [buyerTab, setBuyerTab] = useState('purchases');
+  const [buyerLoading, setBuyerLoading] = useState(false);
 
   const isOwn = currentUser?.id === parseInt(id);
 
@@ -37,7 +45,27 @@ export default function Profile() {
       .finally(() => setLoading(false));
   };
 
+  const fetchBuyerData = () => {
+    if (!isOwn) return;
+    setBuyerLoading(true);
+    Promise.all([
+      fetch('/api/orders', { credentials: 'include' }).then(r => r.json()),
+      fetch(`/api/users/${id}/saved`, { credentials: 'include' }).then(r => r.json()),
+    ])
+      .then(([ordersData, savedData]) => {
+        setOrders(ordersData.orders || []);
+        setWishlist(savedData.listings || []);
+      })
+      .finally(() => setBuyerLoading(false));
+  };
+
   useEffect(() => { fetchProfile(); }, [id]);
+
+  useEffect(() => {
+    if (mode === 'buyer' && isOwn) {
+      fetchBuyerData();
+    }
+  }, [mode, id]);
 
   const startEditing = () => {
     setEditForm({
@@ -92,6 +120,14 @@ export default function Profile() {
     fetchProfile();
   };
 
+  const removeFromWishlist = async (listingId) => {
+    await fetch(`/api/listings/${listingId}/save`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    setWishlist(prev => prev.filter(l => l.id !== listingId));
+  };
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -123,12 +159,12 @@ export default function Profile() {
     return true;
   });
 
-  const tabs = [
+  const sellerTabs = [
     { key: 'active', label: 'Active Listings' },
     { key: 'sold', label: 'Sold' },
   ];
   if (isOwn) {
-    tabs.push({ key: 'hidden', label: `Hidden (${stats.hidden_count || 0})` });
+    sellerTabs.push({ key: 'hidden', label: `Hidden (${stats.hidden_count || 0})` });
   }
 
   return (
@@ -292,106 +328,257 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mt-8 border-b border-border">
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
-              tab === t.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Buyer / Seller Toggle — only on own profile */}
+      {isOwn && (
+        <div className="flex justify-center mt-6">
+          <div className="inline-flex bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => { setMode('buyer'); setBuyerTab('purchases'); }}
+              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                mode === 'buyer'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Buyer
+            </button>
+            <button
+              onClick={() => setMode('seller')}
+              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                mode === 'seller'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Seller
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Listings */}
-      <div className="mt-6">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">{tab === 'hidden' ? '\uD83D\uDC41\uFE0F' : '\uD83D\uDCE6'}</p>
-            <p className="text-gray-500">
-              {tab === 'hidden' ? 'No hidden listings' : `No ${tab} listings yet`}
-            </p>
-            {isOwn && tab === 'active' && (
-              <Link to="/sell" className="btn-primary mt-4 inline-block">
-                List Your First Item
-              </Link>
+      {/* ===== BUYER MODE ===== */}
+      {isOwn && mode === 'buyer' && (
+        <>
+          <div className="flex gap-1 mt-6 border-b border-border">
+            <button
+              onClick={() => setBuyerTab('purchases')}
+              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                buyerTab === 'purchases'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              My Purchases
+            </button>
+            <button
+              onClick={() => setBuyerTab('wishlist')}
+              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                buyerTab === 'wishlist'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Wishlist ({wishlist.length})
+            </button>
+          </div>
+
+          <div className="mt-6">
+            {buyerLoading ? (
+              <div className="text-center py-12">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              </div>
+            ) : buyerTab === 'purchases' ? (
+              /* Purchases */
+              orders.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-4xl mb-3">
+                    <svg className="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </p>
+                  <p className="text-gray-500">No purchases yet</p>
+                  <Link to="/browse" className="btn-primary mt-4 inline-block">
+                    Browse Listings
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orders.map(order => (
+                    <Link
+                      key={order.id}
+                      to={`/orders/${order.id}`}
+                      className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
+                    >
+                      {order.listing_image ? (
+                        <img src={order.listing_image} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
+                        <p className="text-sm text-gray-500">
+                          From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          order.status === 'paid' ? 'bg-green-100 text-green-700' :
+                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          order.status === 'delivered' ? 'bg-blue-100 text-blue-700' :
+                          order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Wishlist */
+              wishlist.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <p className="text-gray-500">Your wishlist is empty</p>
+                  <Link to="/browse" className="btn-primary mt-4 inline-block">
+                    Browse Listings
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {wishlist.map(listing => (
+                    <div key={listing.id} className="relative">
+                      <ListingCard listing={listing} />
+                      <button
+                        onClick={(e) => { e.preventDefault(); removeFromWishlist(listing.id); }}
+                        className="absolute top-3 right-3 z-10 bg-white/90 hover:bg-red-50 rounded-full p-2 shadow-sm transition-colors"
+                        title="Remove from wishlist"
+                      >
+                        <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map(listing => (
-              <div key={listing.id} className="relative">
-                {tab === 'hidden' && (
-                  <div className="absolute inset-0 bg-gray-900/10 rounded-2xl z-10 pointer-events-none" />
-                )}
-                <ListingCard listing={listing} />
-                {isOwn && (
-                  <div className="flex gap-2 mt-2">
-                    {listing.status === 'active' && (
-                      <>
-                        <Link
-                          to={`/listings/${listing.id}/edit`}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => updateStatus(listing.id, 'hidden')}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
-                        >
-                          Hide
-                        </button>
-                        <button
-                          onClick={() => updateStatus(listing.id, 'sold')}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
-                        >
-                          Sold
-                        </button>
-                      </>
-                    )}
-                    {listing.status === 'hidden' && (
-                      <>
-                        <Link
-                          to={`/listings/${listing.id}/edit`}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => updateStatus(listing.id, 'active')}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
-                        >
-                          Make Active
-                        </button>
-                        <button
-                          onClick={() => updateStatus(listing.id, 'sold')}
-                          className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
-                        >
-                          Sold
-                        </button>
-                      </>
-                    )}
-                    {listing.status === 'sold' && (
-                      <button
-                        onClick={() => updateStatus(listing.id, 'active')}
-                        className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
-                      >
-                        Relist
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+        </>
+      )}
+
+      {/* ===== SELLER MODE (or viewing someone else's profile) ===== */}
+      {(mode === 'seller' || !isOwn) && (
+        <>
+          {/* Tabs */}
+          <div className="flex gap-1 mt-6 border-b border-border">
+            {sellerTabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                  tab === t.key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {t.label}
+              </button>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* Listings */}
+          <div className="mt-6">
+            {filtered.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">
+                  {tab === 'hidden' ? 'No hidden listings' : `No ${tab} listings yet`}
+                </p>
+                {isOwn && tab === 'active' && (
+                  <Link to="/sell" className="btn-primary mt-4 inline-block">
+                    List Your First Item
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map(listing => (
+                  <div key={listing.id} className="relative">
+                    {tab === 'hidden' && (
+                      <div className="absolute inset-0 bg-gray-900/10 rounded-2xl z-10 pointer-events-none" />
+                    )}
+                    <ListingCard listing={listing} />
+                    {isOwn && (
+                      <div className="flex gap-2 mt-2">
+                        {listing.status === 'active' && (
+                          <>
+                            <Link
+                              to={`/listings/${listing.id}/edit`}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => updateStatus(listing.id, 'hidden')}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                              Hide
+                            </button>
+                            <button
+                              onClick={() => updateStatus(listing.id, 'sold')}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
+                            >
+                              Sold
+                            </button>
+                          </>
+                        )}
+                        {listing.status === 'hidden' && (
+                          <>
+                            <Link
+                              to={`/listings/${listing.id}/edit`}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => updateStatus(listing.id, 'active')}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+                            >
+                              Make Active
+                            </button>
+                            <button
+                              onClick={() => updateStatus(listing.id, 'sold')}
+                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
+                            >
+                              Sold
+                            </button>
+                          </>
+                        )}
+                        {listing.status === 'sold' && (
+                          <button
+                            onClick={() => updateStatus(listing.id, 'active')}
+                            className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            Relist
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

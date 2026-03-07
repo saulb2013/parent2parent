@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
 
 export default function OrderConfirmation() {
   const { id } = useParams();
   const { user } = useAuth();
-  const location = useLocation();
-  const isNew = location.state?.newOrder;
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [payingLoading, setPayingLoading] = useState(false);
-  const [payError, setPayError] = useState('');
 
   useEffect(() => {
     fetch(`/api/orders/${id}`, { credentials: 'include' })
@@ -61,23 +57,6 @@ export default function OrderConfirmation() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      {isNew && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="font-display text-2xl font-bold text-green-800 mb-2">Order Placed!</h2>
-          <p className="text-green-600">
-            {isCollect
-              ? 'Your order has been created. Pay below, then WhatsApp the seller to arrange collection.'
-              : 'Your order has been created. Pay below to confirm your purchase. The Courier Guy will handle delivery.'
-            }
-          </p>
-        </div>
-      )}
-
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-gray-900">Order #{order.id}</h1>
@@ -126,7 +105,7 @@ export default function OrderConfirmation() {
                   Collect from <strong>{order.seller_name}</strong> in {order.delivery_city}, {order.delivery_province}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  WhatsApp the seller after payment to arrange a time and exact location.
+                  WhatsApp the seller to arrange a time and exact location.
                 </p>
               </div>
             </>
@@ -188,58 +167,7 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
-        {/* Actions */}
-        {order.status === 'pending' && order.buyer_id === user?.id && (
-          <div className="mt-6 space-y-3">
-            <button
-              onClick={async () => {
-                setPayingLoading(true);
-                setPayError('');
-                try {
-                  const res = await fetch('/api/payments/initiate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ orderId: order.id }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error);
-                  // Redirect to Stitch payment page
-                  window.location.href = data.paymentUrl;
-                } catch (err) {
-                  setPayError(err.message || 'Failed to initiate payment');
-                  setPayingLoading(false);
-                }
-              }}
-              disabled={payingLoading}
-              className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {payingLoading ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Connecting to Stitch...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  Pay Now — {formatPrice(order.total_price)}
-                </>
-              )}
-            </button>
-            {payError && (
-              <p className="text-sm text-red-500 text-center">{payError}</p>
-            )}
-            <p className="text-xs text-gray-400 text-center">
-              Secure instant EFT payment via Stitch
-            </p>
-          </div>
-        )}
-
+        {/* Payment status */}
         {order.status === 'paid' && (
           <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 text-center">
             <p className="text-green-700 font-medium flex items-center justify-center gap-2">
@@ -251,7 +179,14 @@ export default function OrderConfirmation() {
           </div>
         )}
 
-        {/* WhatsApp seller — show for collect orders or after payment */}
+        {order.status === 'pending' && (
+          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+            <p className="text-yellow-700 font-medium">Payment Pending</p>
+            <p className="text-xs text-yellow-600 mt-1">Your payment is still being processed.</p>
+          </div>
+        )}
+
+        {/* WhatsApp seller */}
         {whatsappUrl && order.buyer_id === user?.id && (
           <div className="mt-4">
             <a

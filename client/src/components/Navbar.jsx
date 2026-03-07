@@ -12,6 +12,8 @@ export default function Navbar() {
     navigate('/');
   };
 
+  const avatarSrc = user?.avatar_url || (user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null);
+
   return (
     <nav className="bg-surface border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -39,12 +41,19 @@ export default function Navbar() {
                 <Link to="/sell" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                   Sell
                 </Link>
-                <Link to={`/profile/${user.id}`} className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
-                  Profile
-                </Link>
                 <button onClick={handleLogout} className="text-sm font-medium text-gray-600 hover:text-accent-dark transition-colors">
                   Log out
                 </button>
+                <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
+                  + Sell Item
+                </Link>
+                <Link to={`/profile/${user.id}`} className="shrink-0" title="My Profile">
+                  <img
+                    src={avatarSrc}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-full bg-gray-100 object-cover border-2 border-transparent hover:border-primary transition-colors"
+                  />
+                </Link>
               </>
             ) : (
               <>
@@ -54,26 +63,37 @@ export default function Navbar() {
                 <Link to="/register" className="btn-primary text-sm !py-2 !px-4">
                   Sign up
                 </Link>
+                <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
+                  + Sell Item
+                </Link>
               </>
             )}
-            <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
-              + Sell Item
-            </Link>
           </div>
 
           {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          <div className="md:hidden flex items-center gap-3">
+            {user && (
+              <Link to={`/profile/${user.id}`} className="shrink-0">
+                <img
+                  src={avatarSrc}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full bg-gray-100 object-cover border-2 border-transparent"
+                />
+              </Link>
+            )}
+            <button
+              className="p-2"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}
@@ -88,7 +108,7 @@ export default function Navbar() {
                   Sell an Item
                 </Link>
                 <Link to={`/profile/${user.id}`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-                  Profile
+                  My Profile
                 </Link>
                 <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block text-sm font-medium text-gray-600 hover:text-accent-dark">
                   Log out
