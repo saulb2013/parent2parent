@@ -7,7 +7,7 @@ const PLATFORM_FEE_PERCENT = 5;
 
 export default function Checkout() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const addressInputRef = useRef(null);
   const autocompleteRef = useRef(null);
@@ -29,12 +29,12 @@ export default function Checkout() {
     buyerNotes: '',
   });
 
-  // Redirect if not logged in
+  // Redirect if not logged in (wait for auth to finish loading)
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate('/login', { state: { from: `/checkout/${id}` } });
     }
-  }, [user, navigate, id]);
+  }, [user, authLoading, navigate, id]);
 
   // Load listing
   useEffect(() => {
