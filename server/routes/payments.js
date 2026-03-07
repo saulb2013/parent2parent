@@ -92,8 +92,8 @@ router.post('/initiate', authenticateToken, async (req, res) => {
     const paymentRes = await payRes.json();
     console.log('[STITCH PAYMENT RESPONSE]', JSON.stringify(paymentRes));
 
-    // Response may be nested in data
-    const payment = paymentRes.data || paymentRes;
+    // Response is nested in data.payment
+    const payment = paymentRes.data?.payment || paymentRes.data || paymentRes;
 
     if (!payment.link) {
       throw new Error('No payment link returned from Stitch: ' + JSON.stringify(paymentRes));
@@ -143,7 +143,7 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
     }
 
     const statusData = await statusRes.json();
-    const payment = statusData.data || statusData;
+    const payment = statusData.data?.payment || statusData.data || statusData;
     const stitchStatus = payment.status; // PENDING, PAID, SETTLED, EXPIRED, CANCELLED
 
     // Update order status based on payment state
