@@ -75,7 +75,7 @@ export default function CreateListing() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      navigate(`/listings/${data.id}`);
+      navigate(`/profile/${user.id}?view=seller&new=${data.id}`);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -16,8 +16,9 @@ export default function Profile() {
   const [listings, setListings] = useState([]);
   const [stats, setStats] = useState({ active_count: 0, sold_count: 0, hidden_count: 0, total_count: 0 });
   const [tab, setTab] = useState('active');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
+  const newListingId = searchParams.get('new');
   const [mode, setMode] = useState(viewParam === 'buyer' ? 'buyer' : viewParam === 'seller' ? 'seller' : 'seller');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -486,6 +487,16 @@ export default function Profile() {
       {/* ===== SELLER MODE (or viewing someone else's profile) ===== */}
       {(mode === 'seller' || !isOwn) && (
         <>
+          {/* New listing success banner */}
+          {newListingId && (
+            <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+              <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm text-green-700 font-medium">Your listing has been published!</p>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex gap-1 mt-6 border-b border-border">
             {sellerTabs.map(t => (
@@ -519,7 +530,10 @@ export default function Profile() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(listing => (
-                  <div key={listing.id} className="relative">
+                  <div key={listing.id} className={`relative ${newListingId && listing.id === parseInt(newListingId) ? 'ring-2 ring-green-400 rounded-2xl' : ''}`}>
+                    {newListingId && listing.id === parseInt(newListingId) && (
+                      <span className="absolute -top-2 -right-2 z-20 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">New</span>
+                    )}
                     {tab === 'hidden' && (
                       <div className="absolute inset-0 bg-gray-900/10 rounded-2xl z-10 pointer-events-none" />
                     )}
