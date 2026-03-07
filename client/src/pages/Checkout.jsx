@@ -54,65 +54,78 @@ export default function Checkout() {
       .finally(() => setLoading(false));
   }, [id, user]);
 
-  // Load Google Maps Places API
+  // Load Google Maps Places API and initialize autocomplete
   useEffect(() => {
-    if (window.google?.maps?.places) {
-      setMapsLoaded(true);
-      return;
-    }
-
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.warn('Google Maps API key not set');
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
+    function initAutocomplete() {
+      if (!addressInputRef.current || !window.google?.maps?.places) return;
+      if (autocompleteRef.current) return; // already initialized
 
-    return () => {
-      // Don't remove — other components might need it
-    };
-  }, []);
+      setMapsLoaded(true);
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        componentRestrictions: { country: 'za' },
+        fields: ['formatted_address', 'geometry', 'address_components'],
+        types: ['address'],
+      });
 
-  // Initialize autocomplete
-  useEffect(() => {
-    if (!mapsLoaded || !addressInputRef.current) return;
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (!place.geometry) return;
 
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-      componentRestrictions: { country: 'za' },
-      fields: ['formatted_address', 'geometry', 'address_components'],
-      types: ['address'],
-    });
+        let city = '';
+        let province = '';
+        let postalCode = '';
 
-    autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current.getPlace();
-      if (!place.geometry) return;
+        for (const comp of place.address_components) {
+          if (comp.types.includes('locality')) city = comp.long_name;
+          if (comp.types.includes('administrative_area_level_1')) province = comp.long_name;
+          if (comp.types.includes('postal_code')) postalCode = comp.long_name;
+        }
 
-      let city = '';
-      let province = '';
-      let postalCode = '';
+        setForm(prev => ({
+          ...prev,
+          deliveryAddress: place.formatted_address,
+          deliveryLat: place.geometry.location.lat(),
+          deliveryLng: place.geometry.location.lng(),
+          deliveryCity: city,
+          deliveryProvince: province,
+          deliveryPostalCode: postalCode,
+        }));
+      });
+    }
 
-      for (const comp of place.address_components) {
-        if (comp.types.includes('locality')) city = comp.long_name;
-        if (comp.types.includes('administrative_area_level_1')) province = comp.long_name;
-        if (comp.types.includes('postal_code')) postalCode = comp.long_name;
+    // If already loaded, init immediately
+    if (window.google?.maps?.places) {
+      initAutocomplete();
+      return;
+    }
+
+    // Check if script tag already exists
+    if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=__initGoogleMapsAutocomplete`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
+    // Use global callback so it works regardless of timing
+    window.__initGoogleMapsAutocomplete = initAutocomplete;
+
+    // Also poll briefly in case callback already fired
+    const interval = setInterval(() => {
+      if (window.google?.maps?.places && addressInputRef.current) {
+        initAutocomplete();
+        clearInterval(interval);
       }
+    }, 200);
 
-      setForm(prev => ({
-        ...prev,
-        deliveryAddress: place.formatted_address,
-        deliveryLat: place.geometry.location.lat(),
-        deliveryLng: place.geometry.location.lng(),
-        deliveryCity: city,
-        deliveryProvince: province,
-        deliveryPostalCode: postalCode,
-      }));
-    });
-  }, [mapsLoaded]);
+    return () => clearInterval(interval);
+  }, [loading]); // re-run when listing finishes loading (input becomes available)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
