@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
 import { formatPrice } from '../utils/formatPrice';
@@ -16,7 +16,9 @@ export default function Profile() {
   const [listings, setListings] = useState([]);
   const [stats, setStats] = useState({ active_count: 0, sold_count: 0, hidden_count: 0, total_count: 0 });
   const [tab, setTab] = useState('active');
-  const [mode, setMode] = useState('seller'); // 'buyer' or 'seller'
+  const [searchParams] = useSearchParams();
+  const initialMode = searchParams.get('view') === 'buyer' ? 'buyer' : 'seller';
+  const [mode, setMode] = useState(initialMode);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);

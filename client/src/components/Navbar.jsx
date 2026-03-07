@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine mode from current route
+  const sellRoutes = ['/sell', '/profile'];
+  const isSellRoute = sellRoutes.some(r => location.pathname.startsWith(r)) &&
+    location.pathname !== '/browse';
+  const [mode, setMode] = useState(isSellRoute ? 'sell' : 'buy');
 
   const handleLogout = async () => {
     await logout();
@@ -32,21 +39,56 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/browse" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
-              Browse
-            </Link>
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
-                <Link to="/sell" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
-                  Sell
-                </Link>
+                {/* Buy / Sell Toggle */}
+                <div className="inline-flex bg-gray-100 rounded-lg p-0.5 mr-2">
+                  <button
+                    onClick={() => setMode('buy')}
+                    className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      mode === 'buy'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Buying
+                  </button>
+                  <button
+                    onClick={() => setMode('sell')}
+                    className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      mode === 'sell'
+                        ? 'bg-white text-accent shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Selling
+                  </button>
+                </div>
+
+                {mode === 'buy' ? (
+                  <>
+                    <Link to="/browse" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                      Browse
+                    </Link>
+                    <Link to={`/profile/${user.id}?view=buyer`} className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                      My Orders
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to={`/profile/${user.id}?view=seller`} className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                      My Listings
+                    </Link>
+                    <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
+                      + List Item
+                    </Link>
+                  </>
+                )}
+
                 <button onClick={handleLogout} className="text-sm font-medium text-gray-600 hover:text-accent-dark transition-colors">
                   Log out
                 </button>
-                <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
-                  + Sell Item
-                </Link>
                 <Link to={`/profile/${user.id}`} className="shrink-0" title="My Profile">
                   <img
                     src={avatarSrc}
@@ -57,14 +99,14 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                <Link to="/browse" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                  Browse
+                </Link>
                 <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                   Log in
                 </Link>
                 <Link to="/register" className="btn-primary text-sm !py-2 !px-4">
                   Sign up
-                </Link>
-                <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
-                  + Sell Item
                 </Link>
               </>
             )}
@@ -98,31 +140,74 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 border-t border-border mt-2 pt-4 space-y-3">
-            <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-              Browse
-            </Link>
+          <div className="md:hidden pb-4 border-t border-border mt-2 pt-4">
             {user ? (
               <>
-                <Link to="/sell" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-                  Sell an Item
-                </Link>
-                <Link to={`/profile/${user.id}`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-                  My Profile
-                </Link>
-                <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block text-sm font-medium text-gray-600 hover:text-accent-dark">
-                  Log out
-                </button>
+                {/* Mobile Buy/Sell Toggle */}
+                <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
+                  <button
+                    onClick={() => setMode('buy')}
+                    className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
+                      mode === 'buy'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    Buying
+                  </button>
+                  <button
+                    onClick={() => setMode('sell')}
+                    className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
+                      mode === 'sell'
+                        ? 'bg-white text-accent shadow-sm'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    Selling
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {mode === 'buy' ? (
+                    <>
+                      <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                        Browse Items
+                      </Link>
+                      <Link to={`/profile/${user.id}?view=buyer`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                        My Orders
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to={`/profile/${user.id}?view=seller`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                        My Listings
+                      </Link>
+                      <Link to="/sell" className="block text-sm font-medium text-accent hover:text-accent-dark" onClick={() => setMobileOpen(false)}>
+                        + List an Item
+                      </Link>
+                    </>
+                  )}
+                  <hr className="border-border" />
+                  <Link to={`/profile/${user.id}`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                    My Profile
+                  </Link>
+                  <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block text-sm font-medium text-gray-600 hover:text-accent-dark">
+                    Log out
+                  </button>
+                </div>
               </>
             ) : (
-              <>
+              <div className="space-y-3">
+                <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                  Browse
+                </Link>
                 <Link to="/login" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
                   Log in
                 </Link>
                 <Link to="/register" className="block text-sm font-medium text-primary" onClick={() => setMobileOpen(false)}>
                   Sign up
                 </Link>
-              </>
+              </div>
             )}
           </div>
         )}
