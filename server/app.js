@@ -9,6 +9,7 @@ const listingsRoutes = require('./routes/listings');
 const usersRoutes = require('./routes/users');
 const categoriesRoutes = require('./routes/categories');
 const ordersRoutes = require('./routes/orders');
+const paymentsRoutes = require('./routes/payments');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/listings', listingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Serve React frontend in production
 const clientBuild = path.join(__dirname, '..', 'client', 'dist');
