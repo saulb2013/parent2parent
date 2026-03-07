@@ -26,6 +26,52 @@ async function getStitchToken() {
   return data.data?.accessToken || data.accessToken;
 }
 
+// Ensure our redirect URL is registered with Stitch (called once on first payment)
+let registeredRedirectUrl = null;
+
+async function ensureRedirectUrl(token) {
+  const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
+  const returnUrl = `${clientUrl}/payment/return`;
+
+  if (registeredRedirectUrl) return returnUrl;
+
+  // Check existing redirect URLs
+  const listRes = await fetch(`${STITCH_BASE_URL}/redirect-urls`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+
+  if (listRes.ok) {
+    const listData = await listRes.json();
+    const urls = listData.data || listData;
+    const existing = Array.isArray(urls) && urls.find(u => u.redirectUrl === returnUrl);
+    if (existing) {
+      registeredRedirectUrl = returnUrl;
+      return returnUrl;
+    }
+  }
+
+  // Register our redirect URL
+  const regRes = await fetch(`${STITCH_BASE_URL}/redirect-urls`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ redirectUrl: returnUrl }),
+  });
+
+  if (!regRes.ok) {
+    const errText = await regRes.text();
+    console.error('Failed to register redirect URL:', errText);
+    // Continue without redirect — better than failing the payment
+    return null;
+  }
+
+  console.log('[STITCH] Registered redirect URL:', returnUrl);
+  registeredRedirectUrl = returnUrl;
+  return returnUrl;
+}
+
 // Initiate payment for an order
 router.post('/initiate', authenticateToken, async (req, res) => {
   try {
@@ -51,6 +97,9 @@ router.post('/initiate', authenticateToken, async (req, res) => {
     }
 
     const token = await getStitchToken();
+
+    // Ensure redirect URL is registered
+    const redirectUrl = await ensureRedirectUrl(token);
 
     // Stitch Express expects amount in cents (integer)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
@@ -90,7 +139,6 @@ router.post('/initiate', authenticateToken, async (req, res) => {
     }
 
     const paymentRes = await payRes.json();
-    console.log('[STITCH PAYMENT RESPONSE]', JSON.stringify(paymentRes));
 
     // Response is nested in data.payment
     const payment = paymentRes.data?.payment || paymentRes.data || paymentRes;
@@ -105,7 +153,14 @@ router.post('/initiate', authenticateToken, async (req, res) => {
       [payment.id, order.id]
     );
 
-    res.json({ paymentUrl: payment.link, paymentId: payment.id });
+    // Append redirect URL with orderId so we can check status on return
+    let paymentUrl = payment.link;
+    if (redirectUrl) {
+      const returnWithOrder = `${redirectUrl}?orderId=${order.id}`;
+      paymentUrl = `${payment.link}?redirect_url=${encodeURIComponent(returnWithOrder)}`;
+    }
+
+    res.json({ paymentUrl, paymentId: payment.id });
   } catch (err) {
     console.error('Payment initiation error:', err);
     res.status(500).json({ error: err.message || 'Failed to initiate payment' });
