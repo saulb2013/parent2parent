@@ -22,7 +22,15 @@ export default function Navbar() {
   const isOnListings = location.pathname.startsWith('/profile') && location.search.includes('view=seller');
   const isOnSell = location.pathname === '/sell';
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleEditProfile = () => {
+    setProfileOpen(false);
+    navigate(`/profile/${user.id}`);
+  };
+
   const handleLogout = async () => {
+    setShowLogoutConfirm(false);
     setProfileOpen(false);
     await logout();
     navigate('/');
@@ -33,16 +41,18 @@ export default function Navbar() {
     function handleClick(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
+        setShowLogoutConfirm(false);
       }
     }
-    if (profileOpen) document.addEventListener('mousedown', handleClick);
+    if (profileOpen || showLogoutConfirm) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [profileOpen]);
+  }, [profileOpen, showLogoutConfirm]);
 
   // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
     setProfileOpen(false);
+    setShowLogoutConfirm(false);
   }, [location.pathname, location.search]);
 
   const avatarSrc = user?.avatar_url || (user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null);
@@ -135,23 +145,23 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {profileOpen && (
+                  {profileOpen && !showLogoutConfirm && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
                       <div className="px-4 py-2 border-b border-border">
                         <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                       </div>
-                      <Link
-                        to={`/profile/${user.id}`}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      <button
+                        onClick={handleEditProfile}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Edit Profile
-                      </Link>
+                      </button>
                       <button
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutConfirm(true)}
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,6 +169,26 @@ export default function Navbar() {
                         </svg>
                         Log out
                       </button>
+                    </div>
+                  )}
+
+                  {showLogoutConfirm && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
+                      <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowLogoutConfirm(false)}
+                          className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                        >
+                          Log out
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -195,22 +225,22 @@ export default function Navbar() {
                   />
                 </button>
 
-                {profileOpen && !mobileOpen && (
+                {profileOpen && !mobileOpen && !showLogoutConfirm && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
                     <div className="px-4 py-2 border-b border-border">
                       <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
                     </div>
-                    <Link
-                      to={`/profile/${user.id}`}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    <button
+                      onClick={handleEditProfile}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       Edit Profile
-                    </Link>
+                    </button>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => setShowLogoutConfirm(true)}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,6 +248,26 @@ export default function Navbar() {
                       </svg>
                       Log out
                     </button>
+                  </div>
+                )}
+
+                {showLogoutConfirm && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-border py-4 px-4 z-50">
+                    <p className="text-sm font-medium text-gray-900 mb-3">Are you sure you want to log out?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowLogoutConfirm(false)}
+                        className="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                      >
+                        Log out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
