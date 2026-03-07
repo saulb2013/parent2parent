@@ -23,7 +23,7 @@ async function getStitchToken() {
   }
 
   const data = await res.json();
-  return data.accessToken;
+  return data.data?.accessToken || data.accessToken;
 }
 
 // Initiate payment for an order
