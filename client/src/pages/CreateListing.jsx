@@ -287,6 +287,13 @@ export default function CreateListing() {
           {/* Preview */}
           <div className="card p-6 mt-6">
             <h3 className="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wide">Preview</h3>
+            {form.images.length > 0 && (
+              <img
+                src={URL.createObjectURL(form.images[0])}
+                alt="Cover"
+                className="w-full h-48 object-cover rounded-lg mb-4"
+              />
+            )}
             <h4 className="font-display text-xl font-bold">{form.title || 'Your item title'}</h4>
             <p className="text-2xl font-bold text-primary mt-1">
               {form.price ? `R ${parseFloat(form.price).toLocaleString('en-ZA')}` : 'R 0'}
