@@ -103,7 +103,7 @@ export default function Navbar() {
 
                 {mode === 'buy' ? (
                   <>
-                    <Link to="/browse" className={navLinkClass(isOnBrowse)}>
+                    <Link to="/browse" className={`btn-primary text-sm !py-2 !px-4 ${isOnBrowse ? 'ring-2 ring-primary/30' : ''}`}>
                       Browse
                     </Link>
                     <Link to={`/profile/${user.id}?view=buyer`} className={navLinkClass(isOnOrders)}>
@@ -317,7 +317,7 @@ export default function Navbar() {
                 <div className="space-y-3">
                   {mode === 'buy' ? (
                     <>
-                      <Link to="/browse" className={`block text-sm font-medium ${isOnBrowse ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}>
+                      <Link to="/browse" className="btn-primary text-sm !py-2 text-center">
                         Browse Items
                       </Link>
                       <Link to={`/profile/${user.id}?view=buyer`} className={`block text-sm font-medium ${isOnOrders ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}>
