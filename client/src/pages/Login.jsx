@@ -115,10 +115,6 @@ export default function Login() {
               Sign up
             </Link>
           </p>
-
-          <p className="text-center text-xs text-gray-400 mt-4">
-            Demo: naledi@example.com / password123
-          </p>
         </div>
       </div>
     </div>
