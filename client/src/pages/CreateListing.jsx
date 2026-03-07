@@ -36,8 +36,14 @@ export default function CreateListing() {
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 6);
-    updateForm('images', files);
+    const newFiles = Array.from(e.target.files);
+    const combined = [...form.images, ...newFiles].slice(0, 6);
+    updateForm('images', combined);
+    e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    updateForm('images', form.images.filter((_, i) => i !== index));
   };
 
   const canProceed = () => {
@@ -177,28 +183,40 @@ export default function CreateListing() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Photos (up to 6)</label>
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary-light transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className="hidden"
-                id="image-upload"
-              />
-              <label htmlFor="image-upload" className="cursor-pointer">
-                <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-sm text-gray-500">Click to upload photos</p>
-                <p className="text-xs text-gray-400 mt-1">JPEG, PNG, or WebP. Max 5MB each.</p>
-              </label>
-            </div>
+            {form.images.length < 6 && (
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary-light transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm text-gray-500">Click to upload photos</p>
+                  <p className="text-xs text-gray-400 mt-1">JPEG, PNG, or WebP. Max 5MB each. {form.images.length > 0 && `(${6 - form.images.length} remaining)`}</p>
+                </label>
+              </div>
+            )}
             {form.images.length > 0 && (
               <div className="flex gap-3 mt-4 flex-wrap">
                 {form.images.map((img, i) => (
-                  <div key={i} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-border">
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-border group">
                     <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    {i === 0 && <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-white text-[10px] text-center py-0.5">Cover</span>}
                   </div>
                 ))}
               </div>
