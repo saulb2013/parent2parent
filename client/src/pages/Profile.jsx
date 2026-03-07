@@ -535,64 +535,58 @@ export default function Profile() {
                       <span className="absolute -top-2 -right-2 z-20 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">New</span>
                     )}
                     {tab === 'hidden' && (
-                      <div className="absolute inset-0 bg-gray-900/10 rounded-2xl z-10 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gray-900/10 rounded-2xl z-10 pointer-events-none flex items-end justify-center pb-4">
+                        <span className="text-xs font-medium text-gray-500 bg-white/80 px-3 py-1 rounded-full">Hidden from buyers</span>
+                      </div>
                     )}
                     <ListingCard listing={listing} />
                     {isOwn && (
-                      <div className="flex gap-2 mt-2">
+                      <>
+                        {/* Edit icon - top right of card */}
+                        {(listing.status === 'active' || listing.status === 'hidden') && (
+                          <Link
+                            to={`/listings/${listing.id}/edit`}
+                            className="absolute top-3 right-3 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-md transition-all"
+                            title="Edit listing"
+                          >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </Link>
+                        )}
+                        {/* Hide/Unhide toggle */}
                         {listing.status === 'active' && (
-                          <>
-                            <Link
-                              to={`/listings/${listing.id}/edit`}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => updateStatus(listing.id, 'hidden')}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
-                            >
-                              Hide
-                            </button>
-                            <button
-                              onClick={() => updateStatus(listing.id, 'sold')}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
-                            >
-                              Sold
-                            </button>
-                          </>
+                          <button
+                            onClick={() => updateStatus(listing.id, 'hidden')}
+                            className="absolute top-3 right-12 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-md transition-all group"
+                            title="Hide from buyers"
+                          >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.05 6.05m3.828 3.828l4.242 4.242M6.05 6.05l-1.414-1.414M6.05 6.05L3 3m3.05 3.05l4.243 4.243" />
+                            </svg>
+                          </button>
                         )}
                         {listing.status === 'hidden' && (
-                          <>
-                            <Link
-                              to={`/listings/${listing.id}/edit`}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-primary text-center hover:bg-primary/5 transition-colors"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => updateStatus(listing.id, 'active')}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
-                            >
-                              Make Active
-                            </button>
-                            <button
-                              onClick={() => updateStatus(listing.id, 'sold')}
-                              className="flex-1 text-xs py-2 px-3 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors"
-                            >
-                              Sold
-                            </button>
-                          </>
+                          <button
+                            onClick={() => updateStatus(listing.id, 'active')}
+                            className="absolute top-3 right-12 z-20 w-8 h-8 bg-primary/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-primary hover:shadow-md transition-all"
+                            title="Make visible to buyers"
+                          >
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
                         )}
                         {listing.status === 'sold' && (
                           <button
                             onClick={() => updateStatus(listing.id, 'active')}
-                            className="flex-1 text-xs py-2 px-3 rounded-lg border border-border text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 text-xs py-1.5 px-4 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all text-gray-600 font-medium"
                           >
                             Relist
                           </button>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 ))}
