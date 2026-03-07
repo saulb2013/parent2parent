@@ -1,25 +1,58 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine mode from current route
-  const sellRoutes = ['/sell', '/profile'];
-  const isSellRoute = sellRoutes.some(r => location.pathname.startsWith(r)) &&
-    location.pathname !== '/browse';
-  const [mode, setMode] = useState(isSellRoute ? 'sell' : 'buy');
+  // Derive mode from current route
+  const sellRoutes = ['/sell'];
+  const isSellRoute = sellRoutes.some(r => location.pathname.startsWith(r)) ||
+    (location.pathname.startsWith('/profile') && location.search.includes('view=seller'));
+  const mode = isSellRoute ? 'sell' : 'buy';
+
+  // Active nav item based on route
+  const isOnBrowse = location.pathname === '/browse';
+  const isOnOrders = location.pathname.startsWith('/profile') && location.search.includes('view=buyer');
+  const isOnListings = location.pathname.startsWith('/profile') && location.search.includes('view=seller');
+  const isOnSell = location.pathname === '/sell';
 
   const handleLogout = async () => {
+    setProfileOpen(false);
     await logout();
     navigate('/');
   };
 
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
+    if (profileOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [profileOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname, location.search]);
+
   const avatarSrc = user?.avatar_url || (user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null);
+
+  const navLinkClass = (active) =>
+    `text-sm font-medium transition-colors ${
+      active
+        ? 'text-primary'
+        : 'text-gray-500 hover:text-gray-700'
+    }`;
 
   return (
     <nav className="bg-surface border-b border-border sticky top-0 z-50">
@@ -45,7 +78,7 @@ export default function Navbar() {
                 {/* Buy / Sell Toggle */}
                 <div className="inline-flex bg-gray-100 rounded-lg p-0.5 mr-2">
                   <button
-                    onClick={() => setMode('buy')}
+                    onClick={() => navigate('/browse')}
                     className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                       mode === 'buy'
                         ? 'bg-white text-primary shadow-sm'
@@ -55,7 +88,7 @@ export default function Navbar() {
                     Buying
                   </button>
                   <button
-                    onClick={() => setMode('sell')}
+                    onClick={() => navigate('/sell')}
                     className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                       mode === 'sell'
                         ? 'bg-white text-accent shadow-sm'
@@ -68,34 +101,67 @@ export default function Navbar() {
 
                 {mode === 'buy' ? (
                   <>
-                    <Link to="/browse" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                    <Link to="/browse" className={navLinkClass(isOnBrowse)}>
                       Browse
                     </Link>
-                    <Link to={`/profile/${user.id}?view=buyer`} className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                    <Link to={`/profile/${user.id}?view=buyer`} className={navLinkClass(isOnOrders)}>
                       My Orders
                     </Link>
                   </>
                 ) : (
                   <>
-                    <Link to={`/profile/${user.id}?view=seller`} className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
-                      My Listings
-                    </Link>
-                    <Link to="/sell" className="btn-accent text-sm !py-2 !px-4">
+                    <Link to="/sell" className={`btn-accent text-sm !py-2 !px-4 ${isOnSell ? 'ring-2 ring-accent/30' : ''}`}>
                       + List Item
+                    </Link>
+                    <Link to={`/profile/${user.id}?view=seller`} className={navLinkClass(isOnListings)}>
+                      My Listings
                     </Link>
                   </>
                 )}
 
-                <button onClick={handleLogout} className="text-sm font-medium text-gray-600 hover:text-accent-dark transition-colors">
-                  Log out
-                </button>
-                <Link to={`/profile/${user.id}`} className="shrink-0" title="My Profile">
-                  <img
-                    src={avatarSrc}
-                    alt={user.name}
-                    className="w-9 h-9 rounded-full bg-gray-100 object-cover border-2 border-transparent hover:border-primary transition-colors"
-                  />
-                </Link>
+                {/* Profile avatar with dropdown */}
+                <div className="relative" ref={profileRef}>
+                  <button
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="shrink-0 focus:outline-none"
+                    title="Profile menu"
+                  >
+                    <img
+                      src={avatarSrc}
+                      alt={user.name}
+                      className={`w-9 h-9 rounded-full bg-gray-100 object-cover border-2 transition-colors ${
+                        profileOpen ? 'border-primary' : 'border-transparent hover:border-primary'
+                      }`}
+                    />
+                  </button>
+
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
+                      <div className="px-4 py-2 border-b border-border">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                      <Link
+                        to={`/profile/${user.id}`}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Profile
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Log out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -115,13 +181,46 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-3">
             {user && (
-              <Link to={`/profile/${user.id}`} className="shrink-0">
-                <img
-                  src={avatarSrc}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full bg-gray-100 object-cover border-2 border-transparent"
-                />
-              </Link>
+              <div className="relative" ref={!mobileOpen ? profileRef : undefined}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="shrink-0"
+                >
+                  <img
+                    src={avatarSrc}
+                    alt={user.name}
+                    className={`w-8 h-8 rounded-full bg-gray-100 object-cover border-2 transition-colors ${
+                      profileOpen ? 'border-primary' : 'border-transparent'
+                    }`}
+                  />
+                </button>
+
+                {profileOpen && !mobileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50">
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                    </div>
+                    <Link
+                      to={`/profile/${user.id}`}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             <button
               className="p-2"
@@ -146,7 +245,7 @@ export default function Navbar() {
                 {/* Mobile Buy/Sell Toggle */}
                 <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
                   <button
-                    onClick={() => setMode('buy')}
+                    onClick={() => navigate('/browse')}
                     className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
                       mode === 'buy'
                         ? 'bg-white text-primary shadow-sm'
@@ -156,7 +255,7 @@ export default function Navbar() {
                     Buying
                   </button>
                   <button
-                    onClick={() => setMode('sell')}
+                    onClick={() => navigate('/sell')}
                     className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
                       mode === 'sell'
                         ? 'bg-white text-accent shadow-sm'
@@ -170,41 +269,34 @@ export default function Navbar() {
                 <div className="space-y-3">
                   {mode === 'buy' ? (
                     <>
-                      <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                      <Link to="/browse" className={`block text-sm font-medium ${isOnBrowse ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}>
                         Browse Items
                       </Link>
-                      <Link to={`/profile/${user.id}?view=buyer`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                      <Link to={`/profile/${user.id}?view=buyer`} className={`block text-sm font-medium ${isOnOrders ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}>
                         My Orders
                       </Link>
                     </>
                   ) : (
                     <>
-                      <Link to={`/profile/${user.id}?view=seller`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-                        My Listings
-                      </Link>
-                      <Link to="/sell" className="block text-sm font-medium text-accent hover:text-accent-dark" onClick={() => setMobileOpen(false)}>
+                      <Link to="/sell" className={`block text-sm font-medium ${isOnSell ? 'text-accent' : 'text-accent hover:text-accent-dark'}`}>
                         + List an Item
+                      </Link>
+                      <Link to={`/profile/${user.id}?view=seller`} className={`block text-sm font-medium ${isOnListings ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}>
+                        My Listings
                       </Link>
                     </>
                   )}
-                  <hr className="border-border" />
-                  <Link to={`/profile/${user.id}`} className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
-                    My Profile
-                  </Link>
-                  <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block text-sm font-medium text-gray-600 hover:text-accent-dark">
-                    Log out
-                  </button>
                 </div>
               </>
             ) : (
               <div className="space-y-3">
-                <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                <Link to="/browse" className="block text-sm font-medium text-gray-600 hover:text-primary">
                   Browse
                 </Link>
-                <Link to="/login" className="block text-sm font-medium text-gray-600 hover:text-primary" onClick={() => setMobileOpen(false)}>
+                <Link to="/login" className="block text-sm font-medium text-gray-600 hover:text-primary">
                   Log in
                 </Link>
-                <Link to="/register" className="block text-sm font-medium text-primary" onClick={() => setMobileOpen(false)}>
+                <Link to="/register" className="block text-sm font-medium text-primary">
                   Sign up
                 </Link>
               </div>

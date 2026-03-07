@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { sendSellerNotification, sendBuyerConfirmation } = require('../utils/email');
 
 const router = express.Router();
 
@@ -211,6 +212,133 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
         "UPDATE listings SET status = 'sold', updated_at = NOW() WHERE id = $1",
         [order.listing_id]
       );
+
+      // Auto-create TCG shipment for delivery orders
+      if (order.delivery_method === 'delivery' && !order.shipment_id && process.env.TCG_API_KEY) {
+        try {
+          const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.shiplogic.com';
+          const { rows: fullOrder } = await pool.query(
+            `SELECT o.*, seller.name as seller_name, seller.phone as seller_phone,
+              seller.city as seller_city, seller.province as seller_province,
+              buyer.name as buyer_name, buyer.phone as buyer_phone_profile, buyer.email as buyer_email,
+              l.title as listing_title
+             FROM orders o
+             JOIN users seller ON o.seller_id = seller.id
+             JOIN users buyer ON o.buyer_id = buyer.id
+             JOIN listings l ON o.listing_id = l.id
+             WHERE o.id = $1`,
+            [order.id]
+          );
+          const o = fullOrder[0];
+          if (o) {
+            const shipRes = await fetch(`${TCG_BASE_URL}/shipments`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.TCG_API_KEY}`,
+              },
+              body: JSON.stringify({
+                collection_address: {
+                  type: 'residential',
+                  street_address: o.seller_city || '',
+                  local_area: o.seller_city || '',
+                  city: o.seller_city || '',
+                  zone: o.seller_province || '',
+                  country: 'ZA',
+                  code: '',
+                },
+                collection_contact: {
+                  name: o.seller_name,
+                  mobile_number: o.seller_phone || '',
+                  email: '',
+                },
+                delivery_address: {
+                  type: 'residential',
+                  street_address: o.delivery_address || '',
+                  local_area: o.delivery_city || '',
+                  city: o.delivery_city || '',
+                  zone: o.delivery_province || '',
+                  country: 'ZA',
+                  code: o.delivery_postal_code || '',
+                },
+                delivery_contact: {
+                  name: o.buyer_name,
+                  mobile_number: o.buyer_phone || o.buyer_phone_profile || '',
+                  email: o.buyer_email || '',
+                },
+                parcels: [{ submitted_length_cm: 30, submitted_width_cm: 30, submitted_height_cm: 20, submitted_weight_kg: 5 }],
+                special_instructions_collection: `Parent2Parent Order #${o.id} - ${o.listing_title}`,
+                special_instructions_delivery: o.buyer_notes || '',
+                declared_value: o.item_price / 100,
+                service_level_code: 'ECO',
+                mute_notifications: false,
+              }),
+            });
+            if (shipRes.ok) {
+              const shipData = await shipRes.json();
+              const shipmentId = shipData.id || shipData.shipment_id;
+              const trackingRef = shipData.tracking_reference || shipData.short_tracking_reference || '';
+              await pool.query(
+                'UPDATE orders SET shipment_id = $1, tracking_reference = $2, updated_at = NOW() WHERE id = $3',
+                [String(shipmentId), trackingRef, order.id]
+              );
+              console.log(`[TCG] Shipment created for order #${order.id}: ${trackingRef}`);
+            } else {
+              console.error('[TCG] Failed to create shipment:', await shipRes.text());
+            }
+          }
+        } catch (shipErr) {
+          console.error('[TCG] Auto-shipment error:', shipErr.message);
+        }
+      }
+
+      // Send email notifications (non-blocking)
+      const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
+      try {
+        const { rows: emailOrder } = await pool.query(
+          `SELECT o.*, seller.name as seller_name, seller.email as seller_email,
+            buyer.name as buyer_name, buyer.email as buyer_email,
+            l.title as listing_title
+           FROM orders o
+           JOIN users seller ON o.seller_id = seller.id
+           JOIN users buyer ON o.buyer_id = buyer.id
+           JOIN listings l ON o.listing_id = l.id
+           WHERE o.id = $1`,
+          [order.id]
+        );
+        const eo = emailOrder[0];
+        if (eo) {
+          // Notify seller
+          sendSellerNotification({
+            sellerEmail: eo.seller_email,
+            sellerName: eo.seller_name,
+            buyerName: eo.buyer_name,
+            listingTitle: eo.listing_title,
+            orderId: eo.id,
+            totalPrice: eo.total_price,
+            deliveryMethod: eo.delivery_method,
+            deliveryCity: eo.delivery_city,
+            clientUrl,
+          }).then(() => console.log(`[EMAIL] Seller notified for order #${eo.id}`))
+            .catch(err => console.error('[EMAIL] Seller notification failed:', err.message));
+
+          // Confirm to buyer
+          sendBuyerConfirmation({
+            buyerEmail: eo.buyer_email,
+            buyerName: eo.buyer_name,
+            sellerName: eo.seller_name,
+            listingTitle: eo.listing_title,
+            orderId: eo.id,
+            totalPrice: eo.total_price,
+            deliveryMethod: eo.delivery_method,
+            clientUrl,
+          }).then(() => console.log(`[EMAIL] Buyer confirmed for order #${eo.id}`))
+            .catch(err => console.error('[EMAIL] Buyer confirmation failed:', err.message));
+        }
+      } catch (emailErr) {
+        console.error('[EMAIL] Notification error:', emailErr.message);
+      }
+
       return res.json({ status: 'paid', paymentStatus: stitchStatus });
     }
 

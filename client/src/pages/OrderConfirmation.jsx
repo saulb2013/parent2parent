@@ -9,11 +9,21 @@ export default function OrderConfirmation() {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState(null);
 
   useEffect(() => {
     fetch(`/api/orders/${id}`, { credentials: 'include' })
       .then(r => r.json())
-      .then(data => setOrder(data.order))
+      .then(data => {
+        setOrder(data.order);
+        // Fetch tracking if it's a delivery order
+        if (data.order?.delivery_method === 'delivery' && data.order?.tracking_reference) {
+          fetch(`/api/shipping/track/${id}`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(t => setTracking(t))
+            .catch(() => {});
+        }
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -59,7 +69,7 @@ export default function OrderConfirmation() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-gray-900">Order #{order.id}</h1>
+          <h1 className="font-display text-2xl font-bold text-gray-900">{order.listing_title}</h1>
           <div className="flex items-center gap-2">
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
               isCollect ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
@@ -121,11 +131,19 @@ export default function OrderConfirmation() {
               {order.delivery_city && (
                 <p className="text-sm text-gray-500">{order.delivery_city}, {order.delivery_province} {order.delivery_postal_code}</p>
               )}
-              <div className="bg-amber-50 rounded-xl p-3 mt-3">
-                <p className="text-xs text-amber-700">
-                  Delivery by The Courier Guy. Courier fee payable separately.
-                </p>
-              </div>
+              {order.tracking_reference ? (
+                <div className="bg-blue-50 rounded-xl p-3 mt-3">
+                  <p className="text-xs text-blue-700">
+                    Shipment booked with The Courier Guy. Tracking: <strong>{order.tracking_reference}</strong>
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-50 rounded-xl p-3 mt-3">
+                  <p className="text-xs text-amber-700">
+                    Delivery by The Courier Guy. Shipment will be booked shortly.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -183,6 +201,38 @@ export default function OrderConfirmation() {
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
             <p className="text-yellow-700 font-medium">Payment Pending</p>
             <p className="text-xs text-yellow-600 mt-1">Your payment is still being processed.</p>
+          </div>
+        )}
+
+        {/* Tracking Info */}
+        {order.tracking_reference && (
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+              </svg>
+              Courier Tracking
+            </h3>
+            <p className="text-sm text-blue-700">
+              Tracking: <strong>{order.tracking_reference}</strong>
+            </p>
+            {tracking?.status && (
+              <p className="text-sm text-blue-600 mt-1 capitalize">
+                Status: {tracking.status}
+              </p>
+            )}
+            {tracking?.events?.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {tracking.events.slice(0, 5).map((event, i) => (
+                  <div key={i} className="text-xs text-blue-600 flex gap-2">
+                    <span className="text-blue-400 shrink-0">
+                      {new Date(event.timestamp || event.date).toLocaleDateString()}
+                    </span>
+                    <span>{event.description || event.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

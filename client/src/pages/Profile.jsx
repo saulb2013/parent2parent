@@ -17,8 +17,8 @@ export default function Profile() {
   const [stats, setStats] = useState({ active_count: 0, sold_count: 0, hidden_count: 0, total_count: 0 });
   const [tab, setTab] = useState('active');
   const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get('view') === 'buyer' ? 'buyer' : 'seller';
-  const [mode, setMode] = useState(initialMode);
+  const viewParam = searchParams.get('view');
+  const [mode, setMode] = useState(viewParam === 'buyer' ? 'buyer' : viewParam === 'seller' ? 'seller' : 'seller');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,6 +60,12 @@ export default function Profile() {
       })
       .finally(() => setBuyerLoading(false));
   };
+
+  // Sync mode when URL search param changes (from navbar navigation)
+  useEffect(() => {
+    if (viewParam === 'buyer') setMode('buyer');
+    else if (viewParam === 'seller') setMode('seller');
+  }, [viewParam]);
 
   useEffect(() => { fetchProfile(); }, [id]);
 

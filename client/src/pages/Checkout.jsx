@@ -19,6 +19,11 @@ export default function Checkout() {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState(null); // 'collect' or 'delivery'
 
+  const [shippingRates, setShippingRates] = useState([]);
+  const [selectedRate, setSelectedRate] = useState(null);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [ratesError, setRatesError] = useState('');
+
   const [form, setForm] = useState({
     deliveryAddress: '',
     deliveryUnit: '',
@@ -128,6 +133,45 @@ export default function Checkout() {
 
     return () => clearInterval(interval);
   }, [deliveryMethod, loading]);
+
+  // Fetch shipping rates when delivery address is complete
+  useEffect(() => {
+    if (deliveryMethod !== 'delivery' || !form.deliveryCity || !listing) return;
+
+    setRatesLoading(true);
+    setRatesError('');
+    setShippingRates([]);
+    setSelectedRate(null);
+
+    fetch('/api/shipping/rates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        collectionAddress: listing.city,
+        collectionCity: listing.city,
+        collectionPostalCode: '',
+        collectionProvince: listing.province,
+        deliveryAddress: form.deliveryAddress,
+        deliveryCity: form.deliveryCity,
+        deliveryPostalCode: form.deliveryPostalCode,
+        deliveryProvince: form.deliveryProvince,
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          setRatesError(data.error);
+        } else if (data.rates?.length) {
+          setShippingRates(data.rates);
+          setSelectedRate(data.rates[0]);
+        } else {
+          setRatesError('No delivery options available for this route');
+        }
+      })
+      .catch(() => setRatesError('Could not fetch delivery quotes'))
+      .finally(() => setRatesLoading(false));
+  }, [deliveryMethod, form.deliveryCity, form.deliveryPostalCode, listing]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -376,6 +420,66 @@ export default function Checkout() {
               </div>
             )}
 
+            {/* Shipping Rates — show after delivery address is entered */}
+            {deliveryMethod === 'delivery' && form.deliveryCity && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                  </svg>
+                  Delivery Options
+                </h2>
+
+                {ratesLoading && (
+                  <div className="flex items-center gap-3 py-6 justify-center text-gray-500">
+                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Getting delivery quotes...
+                  </div>
+                )}
+
+                {ratesError && (
+                  <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm">
+                    {ratesError}
+                  </div>
+                )}
+
+                {shippingRates.length > 0 && (
+                  <div className="space-y-3">
+                    {shippingRates.map((rate, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedRate(rate)}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${
+                          selectedRate?.code === rate.code
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                            : 'border-border hover:border-gray-300'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{rate.service}</p>
+                          {rate.estimatedDays && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Est. {rate.estimatedDays} business day{rate.estimatedDays !== 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-bold text-primary">
+                          {formatPrice(Math.round(rate.price * 100))}
+                        </span>
+                      </button>
+                    ))}
+                    <p className="text-xs text-gray-400 mt-2">
+                      Courier fee is paid separately to The Courier Guy on collection/delivery.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Collection info — only show for collect method */}
             {deliveryMethod === 'collect' && (
               <div className="card p-6">
@@ -520,7 +624,9 @@ export default function Checkout() {
               {deliveryMethod === 'delivery' && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Courier (The Courier Guy)</span>
-                  <span className="font-medium text-amber-600">Paid separately</span>
+                  <span className="font-medium text-amber-600">
+                    {selectedRate ? formatPrice(Math.round(selectedRate.price * 100)) : 'Select option above'}
+                  </span>
                 </div>
               )}
               {deliveryMethod === 'collect' && (
@@ -534,8 +640,8 @@ export default function Checkout() {
                 <span>Total</span>
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
-              {deliveryMethod === 'delivery' && (
-                <p className="text-xs text-amber-600">+ courier fee payable to The Courier Guy</p>
+              {deliveryMethod === 'delivery' && selectedRate && (
+                <p className="text-xs text-amber-600">+ {formatPrice(Math.round(selectedRate.price * 100))} courier fee ({selectedRate.service})</p>
               )}
             </div>
 

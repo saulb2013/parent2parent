@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS orders (
   buyer_notes TEXT,
   status TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid','shipped','delivered','cancelled','refunded')),
   payment_reference TEXT,
+  tracking_reference TEXT,
+  shipment_id TEXT,
+  courier_fee INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
