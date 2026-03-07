@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS orders (
   item_price INTEGER NOT NULL,
   platform_fee INTEGER NOT NULL,
   total_price INTEGER NOT NULL,
+  delivery_method TEXT DEFAULT 'collect' CHECK(delivery_method IN ('collect','delivery')),
   delivery_address TEXT NOT NULL,
   delivery_lat DOUBLE PRECISION,
   delivery_lng DOUBLE PRECISION,

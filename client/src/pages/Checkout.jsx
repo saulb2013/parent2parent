@@ -17,6 +17,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState(null); // 'collect' or 'delivery'
 
   const [form, setForm] = useState({
     deliveryAddress: '',
@@ -57,6 +58,8 @@ export default function Checkout() {
 
   // Load Google Maps Places API and initialize autocomplete
   useEffect(() => {
+    if (deliveryMethod !== 'delivery') return;
+
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.warn('Google Maps API key not set');
@@ -65,7 +68,7 @@ export default function Checkout() {
 
     function initAutocomplete() {
       if (!addressInputRef.current || !window.google?.maps?.places) return;
-      if (autocompleteRef.current) return; // already initialized
+      if (autocompleteRef.current) return;
 
       setMapsLoaded(true);
       autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
@@ -100,13 +103,13 @@ export default function Checkout() {
       });
     }
 
-    // If already loaded, init immediately
     if (window.google?.maps?.places) {
-      initAutocomplete();
+      // Reset ref so it can reinitialize on a new input element
+      autocompleteRef.current = null;
+      setTimeout(initAutocomplete, 100);
       return;
     }
 
-    // Check if script tag already exists
     if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=__initGoogleMapsAutocomplete`;
@@ -114,10 +117,8 @@ export default function Checkout() {
       document.head.appendChild(script);
     }
 
-    // Use global callback so it works regardless of timing
     window.__initGoogleMapsAutocomplete = initAutocomplete;
 
-    // Also poll briefly in case callback already fired
     const interval = setInterval(() => {
       if (window.google?.maps?.places && addressInputRef.current) {
         initAutocomplete();
@@ -126,12 +127,16 @@ export default function Checkout() {
     }, 200);
 
     return () => clearInterval(interval);
-  }, [loading]); // re-run when listing finishes loading (input becomes available)
+  }, [deliveryMethod, loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.deliveryAddress) {
-      setError('Please select a delivery address');
+    if (!deliveryMethod) {
+      setError('Please select a delivery method');
+      return;
+    }
+    if (deliveryMethod === 'delivery' && !form.deliveryAddress) {
+      setError('Please enter a delivery address');
       return;
     }
 
@@ -139,17 +144,34 @@ export default function Checkout() {
     setError('');
 
     try {
+      const submitData = {
+        listingId: parseInt(id),
+        deliveryMethod,
+        buyerPhone: form.buyerPhone,
+        buyerNotes: form.buyerNotes,
+      };
+
+      if (deliveryMethod === 'delivery') {
+        submitData.deliveryAddress = form.deliveryUnit
+          ? `${form.deliveryUnit}, ${form.deliveryAddress}`
+          : form.deliveryAddress;
+        submitData.deliveryLat = form.deliveryLat;
+        submitData.deliveryLng = form.deliveryLng;
+        submitData.deliveryCity = form.deliveryCity;
+        submitData.deliveryProvince = form.deliveryProvince;
+        submitData.deliveryPostalCode = form.deliveryPostalCode;
+      } else {
+        // Collection — use seller's location as address
+        submitData.deliveryAddress = `Collect from ${listing.city}, ${listing.province}`;
+        submitData.deliveryCity = listing.city;
+        submitData.deliveryProvince = listing.province;
+      }
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          listingId: parseInt(id),
-          ...form,
-          deliveryAddress: form.deliveryUnit
-            ? `${form.deliveryUnit}, ${form.deliveryAddress}`
-            : form.deliveryAddress,
-        }),
+        body: JSON.stringify(submitData),
       });
 
       const data = await res.json();
@@ -204,145 +226,250 @@ export default function Checkout() {
         {/* Left: Form */}
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Delivery Address */}
+            {/* Delivery Method */}
             <div className="card p-6">
               <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
-                Delivery Address
+                How would you like to get your item?
               </h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street Address
-                  </label>
-                  <input
-                    ref={addressInputRef}
-                    type="text"
-                    placeholder="Start typing your address..."
-                    defaultValue={form.deliveryAddress}
-                    onChange={(e) => {
-                      // Allow manual typing but clear coordinates
-                      if (!autocompleteRef.current) {
-                        setForm(prev => ({ ...prev, deliveryAddress: e.target.value }));
-                      }
-                    }}
-                    className="input w-full"
-                    required
-                  />
-                  {mapsLoaded && (
-                    <p className="text-xs text-gray-400 mt-1">Powered by Google Maps</p>
-                  )}
-                  {!mapsLoaded && !import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                    <p className="text-xs text-amber-500 mt-1">
-                      Address autocomplete unavailable — type your full address manually
-                    </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Collect Option */}
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod('collect')}
+                  className={`p-5 rounded-xl border-2 text-left transition-all ${
+                    deliveryMethod === 'collect'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      deliveryMethod === 'collect' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Collect</h3>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Pay online, then WhatsApp the seller to arrange collection from <strong>{listing.city}, {listing.province}</strong>
+                  </p>
+                  <p className="text-xs text-primary font-medium mt-2">Free — no delivery fee</p>
+                </button>
+
+                {/* Delivery Option */}
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod('delivery')}
+                  className={`p-5 rounded-xl border-2 text-left transition-all ${
+                    deliveryMethod === 'delivery'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      deliveryMethod === 'delivery' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Deliver</h3>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    The Courier Guy picks up from seller and delivers to your door
+                  </p>
+                  <p className="text-xs text-amber-600 font-medium mt-2">Courier fee paid separately to The Courier Guy</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Delivery Address — only show for delivery method */}
+            {deliveryMethod === 'delivery' && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Delivery Address
+                </h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Street Address
+                    </label>
+                    <input
+                      ref={addressInputRef}
+                      type="text"
+                      placeholder="Start typing your address..."
+                      defaultValue={form.deliveryAddress}
+                      onChange={(e) => {
+                        if (!autocompleteRef.current) {
+                          setForm(prev => ({ ...prev, deliveryAddress: e.target.value }));
+                        }
+                      }}
+                      className="input w-full"
+                      required
+                    />
+                    {mapsLoaded && (
+                      <p className="text-xs text-gray-400 mt-1">Powered by Google Maps</p>
+                    )}
+                    {!mapsLoaded && !import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                      <p className="text-xs text-amber-500 mt-1">
+                        Address autocomplete unavailable — type your full address manually
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit / Apartment / Building (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.deliveryUnit}
+                      onChange={(e) => setForm(prev => ({ ...prev, deliveryUnit: e.target.value }))}
+                      placeholder="e.g. Unit 4, Block B, Sunset Heights"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  {form.deliveryCity && (
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <span className="text-gray-500 block text-xs">City</span>
+                        <span className="font-medium">{form.deliveryCity}</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <span className="text-gray-500 block text-xs">Province</span>
+                        <span className="font-medium">{form.deliveryProvince}</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <span className="text-gray-500 block text-xs">Postal Code</span>
+                        <span className="font-medium">{form.deliveryPostalCode}</span>
+                      </div>
+                    </div>
                   )}
                 </div>
+              </div>
+            )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Unit / Apartment / Building (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.deliveryUnit}
-                    onChange={(e) => setForm(prev => ({ ...prev, deliveryUnit: e.target.value }))}
-                    placeholder="e.g. Unit 4, Block B, Sunset Heights"
-                    className="input w-full"
-                  />
-                </div>
-
-                {form.deliveryCity && (
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <span className="text-gray-500 block text-xs">City</span>
-                      <span className="font-medium">{form.deliveryCity}</span>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <span className="text-gray-500 block text-xs">Province</span>
-                      <span className="font-medium">{form.deliveryProvince}</span>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <span className="text-gray-500 block text-xs">Postal Code</span>
-                      <span className="font-medium">{form.deliveryPostalCode}</span>
+            {/* Collection info — only show for collect method */}
+            {deliveryMethod === 'collect' && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Collection Details
+                </h2>
+                <div className="bg-primary/5 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-primary mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-medium text-gray-800">Collect from {listing.seller_name}</p>
+                      <p className="text-sm text-gray-500">{listing.city}, {listing.province}</p>
                     </div>
                   </div>
-                )}
+                  <hr className="border-primary/10 my-3" />
+                  <p className="text-sm text-gray-600">
+                    After payment, you'll be able to WhatsApp the seller to arrange a convenient time and exact location for collection.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Contact Details */}
-            <div className="card p-6">
-              <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Contact Details
-              </h2>
+            {deliveryMethod && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Contact Details
+                </h2>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={form.buyerPhone}
-                  onChange={(e) => setForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
-                  placeholder="+27 XX XXX XXXX"
-                  className="input w-full"
-                />
-                <p className="text-xs text-gray-400 mt-1">For delivery coordination</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.buyerPhone}
+                    onChange={(e) => setForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
+                    placeholder="+27 XX XXX XXXX"
+                    className="input w-full"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    {deliveryMethod === 'collect' ? 'For coordinating collection with the seller' : 'For delivery coordination'}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Notes */}
-            <div className="card p-6">
-              <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                </svg>
-                Notes (Optional)
-              </h2>
+            {deliveryMethod && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
+                  Notes (Optional)
+                </h2>
 
-              <textarea
-                value={form.buyerNotes}
-                onChange={(e) => setForm(prev => ({ ...prev, buyerNotes: e.target.value }))}
-                placeholder="Any special delivery instructions or message for the seller..."
-                rows={3}
-                className="input w-full resize-none"
-              />
-            </div>
+                <textarea
+                  value={form.buyerNotes}
+                  onChange={(e) => setForm(prev => ({ ...prev, buyerNotes: e.target.value }))}
+                  placeholder={deliveryMethod === 'collect'
+                    ? 'Any message for the seller about collection...'
+                    : 'Any special delivery instructions or message for the seller...'
+                  }
+                  rows={3}
+                  className="input w-full resize-none"
+                />
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">{error}</div>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting || !!error && error !== 'Please select a delivery address'}
-              className="btn-primary w-full text-lg py-4 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Pay {formatPrice(totalPrice)}
-                </>
-              )}
-            </button>
+            {deliveryMethod && (
+              <button
+                type="submit"
+                disabled={submitting || (!!error && error !== 'Please select a delivery address' && error !== 'Please select a delivery method')}
+                className="btn-primary w-full text-lg py-4 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Pay {formatPrice(totalPrice)}
+                  </>
+                )}
+              </button>
+            )}
           </form>
         </div>
 
@@ -377,11 +504,26 @@ export default function Checkout() {
                 <span className="text-gray-600">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
                 <span className="font-medium">{formatPrice(platformFee)}</span>
               </div>
+              {deliveryMethod === 'delivery' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Courier (The Courier Guy)</span>
+                  <span className="font-medium text-amber-600">Paid separately</span>
+                </div>
+              )}
+              {deliveryMethod === 'collect' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Collection</span>
+                  <span className="font-medium text-green-600">Free</span>
+                </div>
+              )}
               <hr className="border-border" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
+              {deliveryMethod === 'delivery' && (
+                <p className="text-xs text-amber-600">+ courier fee payable to The Courier Guy</p>
+              )}
             </div>
 
             {/* Seller Info */}

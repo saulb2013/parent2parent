@@ -12,6 +12,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const buyerId = req.user.id;
     const {
       listingId,
+      deliveryMethod,
       deliveryAddress,
       deliveryLat,
       deliveryLng,
@@ -48,12 +49,12 @@ router.post('/', authenticateToken, async (req, res) => {
 
     const { rows } = await pool.query(
       `INSERT INTO orders (buyer_id, listing_id, seller_id, item_price, platform_fee, total_price,
-        delivery_address, delivery_lat, delivery_lng, delivery_city, delivery_province, delivery_postal_code,
+        delivery_method, delivery_address, delivery_lat, delivery_lng, delivery_city, delivery_province, delivery_postal_code,
         buyer_phone, buyer_notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [buyerId, listingId, listing.seller_id, itemPrice, platformFee, totalPrice,
-       deliveryAddress, deliveryLat || null, deliveryLng || null, deliveryCity || null,
+       deliveryMethod || 'collect', deliveryAddress, deliveryLat || null, deliveryLng || null, deliveryCity || null,
        deliveryProvince || null, deliveryPostalCode || null, buyerPhone || null, buyerNotes || null]
     );
 
@@ -71,7 +72,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title, l.description as listing_description,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name, buyer.name as buyer_name
+        seller.name as seller_name, seller.phone as seller_phone, buyer.name as buyer_name
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
