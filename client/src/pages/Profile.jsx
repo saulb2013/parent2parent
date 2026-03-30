@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
 import { formatPrice } from '../utils/formatPrice';
+
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -27,6 +29,8 @@ export default function Profile() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const fileRef = useRef();
+  const addressInputRef = useRef();
+  const autocompleteRef = useRef();
 
   // Buyer state
   const [orders, setOrders] = useState([]);
@@ -83,9 +87,12 @@ export default function Profile() {
       phone: profile.phone || '',
       province: profile.province || '',
       city: profile.city || '',
+      street_address: profile.street_address || '',
+      postal_code: profile.postal_code || '',
     });
     setAvatarPreview(null);
     setAvatarFile(null);
+    autocompleteRef.current = null;
     setEditing(true);
   };
 
@@ -96,6 +103,68 @@ export default function Profile() {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  // Google Places autocomplete for seller address
+  const initAddressAutocomplete = useCallback(() => {
+    if (!addressInputRef.current || !window.google?.maps?.places) return;
+    if (autocompleteRef.current) return;
+
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+      componentRestrictions: { country: 'za' },
+      fields: ['formatted_address', 'address_components'],
+      types: ['address'],
+    });
+
+    autocompleteRef.current.addListener('place_changed', () => {
+      const place = autocompleteRef.current.getPlace();
+      if (!place.address_components) return;
+
+      let city = '';
+      let province = '';
+      let postalCode = '';
+
+      for (const comp of place.address_components) {
+        if (comp.types.includes('locality')) city = comp.long_name;
+        if (comp.types.includes('administrative_area_level_1')) province = comp.long_name;
+        if (comp.types.includes('postal_code')) postalCode = comp.long_name;
+      }
+
+      setEditForm(prev => ({
+        ...prev,
+        street_address: place.formatted_address,
+        city: city || prev.city,
+        province: province || prev.province,
+        postal_code: postalCode || prev.postal_code,
+      }));
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+
+    if (!GOOGLE_API_KEY) return;
+
+    if (window.google?.maps?.places) {
+      setTimeout(initAddressAutocomplete, 100);
+      return;
+    }
+
+    if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places`;
+      script.async = true;
+      script.onload = () => setTimeout(initAddressAutocomplete, 100);
+      document.head.appendChild(script);
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.maps?.places) {
+          initAddressAutocomplete();
+          clearInterval(interval);
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [editing, initAddressAutocomplete]);
+
   const saveProfile = async () => {
     setSaving(true);
     try {
@@ -105,6 +174,8 @@ export default function Profile() {
       formData.append('phone', editForm.phone);
       formData.append('province', editForm.province);
       formData.append('city', editForm.city);
+      formData.append('street_address', editForm.street_address);
+      formData.append('postal_code', editForm.postal_code);
       if (avatarFile) formData.append('avatar', avatarFile);
 
       await fetch(`/api/users/${id}`, {
@@ -236,7 +307,20 @@ export default function Profile() {
                   <p className="text-xs text-gray-400 mt-1">Include country code (27) for WhatsApp to work</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Address (for courier collection)</label>
+                  <input
+                    ref={addressInputRef}
+                    type="text"
+                    value={editForm.street_address}
+                    onChange={e => setEditForm({ ...editForm, street_address: e.target.value })}
+                    placeholder="Start typing your address..."
+                    className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">This is where couriers will collect items you sell. Select from the Google suggestions to confirm.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Province</label>
                     <select
@@ -255,6 +339,16 @@ export default function Profile() {
                       value={editForm.city}
                       onChange={e => setEditForm({ ...editForm, city: e.target.value })}
                       placeholder="e.g., Seapoint"
+                      className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Postal Code</label>
+                    <input
+                      type="text"
+                      value={editForm.postal_code}
+                      onChange={e => setEditForm({ ...editForm, postal_code: e.target.value })}
+                      placeholder="e.g., 7530"
                       className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                     />
                   </div>

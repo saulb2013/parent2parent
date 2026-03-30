@@ -219,7 +219,7 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
           const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.shiplogic.com';
           const { rows: fullOrder } = await pool.query(
             `SELECT o.*, seller.name as seller_name, seller.phone as seller_phone,
-              seller.email as seller_email, seller.city as seller_city, seller.province as seller_province,
+              seller.email as seller_email, seller.city as seller_city, seller.province as seller_province, seller.street_address as seller_street_address, seller.postal_code as seller_postal_code,
               buyer.name as buyer_name, buyer.phone as buyer_phone_profile, buyer.email as buyer_email,
               l.title as listing_title
              FROM orders o
@@ -240,12 +240,12 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
               body: JSON.stringify({
                 collection_address: {
                   type: 'residential',
-                  street_address: o.seller_city || '',
+                  street_address: o.seller_street_address || o.seller_city || '',
                   local_area: o.seller_city || '',
                   city: o.seller_city || '',
                   zone: o.seller_province || '',
                   country: 'ZA',
-                  code: '',
+                  code: o.seller_postal_code || '',
                 },
                 collection_contact: {
                   name: o.seller_name,

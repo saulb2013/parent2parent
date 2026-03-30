@@ -105,7 +105,7 @@ router.post('/shipment', authenticateToken, async (req, res) => {
     // Get order with seller and buyer info
     const { rows: orders } = await pool.query(
       `SELECT o.*,
-        seller.name as seller_name, seller.phone as seller_phone, seller.email as seller_email, seller.city as seller_city, seller.province as seller_province,
+        seller.name as seller_name, seller.phone as seller_phone, seller.email as seller_email, seller.city as seller_city, seller.province as seller_province, seller.street_address as seller_street_address, seller.postal_code as seller_postal_code,
         buyer.name as buyer_name, buyer.phone as buyer_phone_profile, buyer.email as buyer_email,
         l.title as listing_title
        FROM orders o
@@ -136,12 +136,12 @@ router.post('/shipment', authenticateToken, async (req, res) => {
     const shipmentBody = {
       collection_address: {
         type: 'residential',
-        street_address: order.seller_city || '',
+        street_address: order.seller_street_address || order.seller_city || '',
         local_area: order.seller_city || '',
         city: order.seller_city || '',
         zone: order.seller_province || '',
         country: 'ZA',
-        code: '',
+        code: order.seller_postal_code || '',
       },
       collection_contact: {
         name: order.seller_name,
