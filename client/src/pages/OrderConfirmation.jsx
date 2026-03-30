@@ -254,7 +254,7 @@ export default function OrderConfirmation() {
             )}
 
             <a
-              href={`https://www.thecourierguy.co.za/tracking?reference=${order.tracking_reference}`}
+              href={`https://www.shiplogic.com/tracking/${order.tracking_reference}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 w-full py-2.5 flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
