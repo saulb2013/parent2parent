@@ -253,17 +253,9 @@ export default function OrderConfirmation() {
               </div>
             )}
 
-            <a
-              href={`https://www.shiplogic.com/tracking/${order.tracking_reference}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 w-full py-2.5 flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Track on The Courier Guy
-            </a>
+            <p className="mt-3 text-xs text-blue-500 text-center">
+              Tracking updates are fetched live from The Courier Guy.
+            </p>
           </div>
         )}
 
