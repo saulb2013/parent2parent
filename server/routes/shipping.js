@@ -220,12 +220,30 @@ router.get('/track/:orderId', authenticateToken, async (req, res) => {
     const data = await tcgFetch(`/tracking/shipments?tracking_reference=${order.tracking_reference}`);
 
     const shipment = data.shipments?.[0] || data;
+    const courierStatus = (shipment.status || '').toLowerCase();
+
+    // Sync order status based on courier status
+    let newOrderStatus = null;
+    if (courierStatus.includes('delivered') && order.status !== 'delivered') {
+      newOrderStatus = 'delivered';
+    } else if ((courierStatus.includes('in-transit') || courierStatus.includes('out-for-delivery')) && order.status === 'paid') {
+      newOrderStatus = 'shipped';
+    }
+
+    if (newOrderStatus) {
+      await pool.query(
+        'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2',
+        [newOrderStatus, order.id]
+      );
+      console.log(`[TRACKING] Order #${order.id} status updated to ${newOrderStatus} (courier: ${courierStatus})`);
+    }
 
     res.json({
       trackingReference: order.tracking_reference,
       status: shipment.status || 'unknown',
       events: shipment.tracking_events || [],
       estimatedDelivery: shipment.delivery_date_to || null,
+      orderStatus: newOrderStatus || order.status,
     });
   } catch (err) {
     console.error('Track shipment error:', err);
