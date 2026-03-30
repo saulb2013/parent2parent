@@ -169,7 +169,7 @@ export default function OrderConfirmation() {
           {isDelivery && (
             <div className="flex justify-between">
               <span className="text-gray-600">Courier (The Courier Guy)</span>
-              <span className="text-amber-600">Paid separately</span>
+              <span>{order.courier_fee ? formatPrice(order.courier_fee) : 'Included'}</span>
             </div>
           )}
           {isCollect && (
