@@ -173,7 +173,7 @@ router.post('/shipment', authenticateToken, async (req, res) => {
       special_instructions_collection: `Parent2Parent Order #${order.id} - ${order.listing_title}`,
       special_instructions_delivery: order.buyer_notes || '',
       declared_value: order.item_price / 100, // Convert cents to rands
-      service_level_code: serviceLevelCode || 'ECO',
+      service_level_code: serviceLevelCode || order.service_level_code || 'ECO',
       mute_notifications: false,
     };
 

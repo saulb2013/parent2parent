@@ -21,6 +21,8 @@ router.post('/', authenticateToken, async (req, res) => {
       deliveryPostalCode,
       buyerPhone,
       buyerNotes,
+      courierFee,
+      serviceLevelCode,
     } = req.body;
 
     // Get listing details
@@ -55,17 +57,19 @@ router.post('/', authenticateToken, async (req, res) => {
 
     const itemPrice = listing.price;
     const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
-    const totalPrice = itemPrice + platformFee;
+    const courierFeeAmount = deliveryMethod === 'delivery' ? (courierFee || 0) : 0;
+    const totalPrice = itemPrice + platformFee + courierFeeAmount;
 
     const { rows } = await pool.query(
       `INSERT INTO orders (buyer_id, listing_id, seller_id, item_price, platform_fee, total_price,
         delivery_method, delivery_address, delivery_lat, delivery_lng, delivery_city, delivery_province, delivery_postal_code,
-        buyer_phone, buyer_notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        buyer_phone, buyer_notes, courier_fee, service_level_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING *`,
       [buyerId, listingId, listing.seller_id, itemPrice, platformFee, totalPrice,
        deliveryMethod || 'collect', deliveryAddress, deliveryLat || null, deliveryLng || null, deliveryCity || null,
-       deliveryProvince || null, deliveryPostalCode || null, buyerPhone || null, buyerNotes || null]
+       deliveryProvince || null, deliveryPostalCode || null, buyerPhone || null, buyerNotes || null,
+       courierFeeAmount || null, serviceLevelCode || null]
     );
 
     res.status(201).json({ order: rows[0] });

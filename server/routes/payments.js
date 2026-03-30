@@ -270,7 +270,7 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
                 special_instructions_collection: `Parent2Parent Order #${o.id} - ${o.listing_title}`,
                 special_instructions_delivery: o.buyer_notes || '',
                 declared_value: o.item_price / 100,
-                service_level_code: 'ECO',
+                service_level_code: o.service_level_code || 'ECO',
                 mute_notifications: false,
               }),
             });

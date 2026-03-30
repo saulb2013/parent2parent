@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS orders (
   tracking_reference TEXT,
   shipment_id TEXT,
   courier_fee INTEGER,
+  service_level_code TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

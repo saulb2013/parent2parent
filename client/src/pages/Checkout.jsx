@@ -204,6 +204,8 @@ export default function Checkout() {
         submitData.deliveryCity = form.deliveryCity;
         submitData.deliveryProvince = form.deliveryProvince;
         submitData.deliveryPostalCode = form.deliveryPostalCode;
+        submitData.courierFee = courierFee;
+        submitData.serviceLevelCode = selectedRate?.code || 'ECO';
       } else {
         // Collection — use seller's location as address
         submitData.deliveryAddress = `Collect from ${listing.city}, ${listing.province}`;
@@ -264,7 +266,8 @@ export default function Checkout() {
 
   const itemPrice = listing.price;
   const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
-  const totalPrice = itemPrice + platformFee;
+  const courierFee = deliveryMethod === 'delivery' && selectedRate ? Math.round(selectedRate.price * 100) : 0;
+  const totalPrice = itemPrice + platformFee + courierFee;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -343,7 +346,7 @@ export default function Checkout() {
                   <p className="text-sm text-gray-500">
                     The Courier Guy picks up from seller and delivers to your door
                   </p>
-                  <p className="text-xs text-amber-600 font-medium mt-2">Courier fee paid separately to The Courier Guy</p>
+                  <p className="text-xs text-primary font-medium mt-2">Courier fee included in total</p>
                 </button>
               </div>
             </div>
@@ -473,7 +476,7 @@ export default function Checkout() {
                       </button>
                     ))}
                     <p className="text-xs text-gray-400 mt-2">
-                      Courier fee is paid separately to The Courier Guy on collection/delivery.
+                      Courier fee is included in your total and handled by Parent2Parent.
                     </p>
                   </div>
                 )}
@@ -624,8 +627,8 @@ export default function Checkout() {
               {deliveryMethod === 'delivery' && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Courier (The Courier Guy)</span>
-                  <span className="font-medium text-amber-600">
-                    {selectedRate ? formatPrice(Math.round(selectedRate.price * 100)) : 'Select option above'}
+                  <span className="font-medium">
+                    {selectedRate ? formatPrice(courierFee) : 'Select option above'}
                   </span>
                 </div>
               )}
@@ -641,7 +644,7 @@ export default function Checkout() {
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
               {deliveryMethod === 'delivery' && selectedRate && (
-                <p className="text-xs text-amber-600">+ {formatPrice(Math.round(selectedRate.price * 100))} courier fee ({selectedRate.service})</p>
+                <p className="text-xs text-gray-400">Includes {formatPrice(courierFee)} courier fee ({selectedRate.service})</p>
               )}
             </div>
 
