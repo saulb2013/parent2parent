@@ -207,32 +207,63 @@ export default function OrderConfirmation() {
         {/* Tracking Info */}
         {order.tracking_reference && (
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h3 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+            <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
               </svg>
               Courier Tracking
             </h3>
-            <p className="text-sm text-blue-700">
-              Tracking: <strong>{order.tracking_reference}</strong>
-            </p>
-            {tracking?.status && (
-              <p className="text-sm text-blue-600 mt-1 capitalize">
-                Status: {tracking.status}
-              </p>
-            )}
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">Tracking Number</span>
+                <span className="text-sm font-bold text-blue-800">{order.tracking_reference}</span>
+              </div>
+
+              {tracking?.status && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700">Status</span>
+                  <span className="text-sm font-medium text-blue-800 capitalize">{tracking.status.replace(/-/g, ' ')}</span>
+                </div>
+              )}
+
+              {tracking?.estimatedDelivery && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700">Estimated Delivery</span>
+                  <span className="text-sm font-medium text-blue-800">
+                    {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {tracking?.events?.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {tracking.events.slice(0, 5).map((event, i) => (
-                  <div key={i} className="text-xs text-blue-600 flex gap-2">
-                    <span className="text-blue-400 shrink-0">
-                      {new Date(event.timestamp || event.date).toLocaleDateString()}
-                    </span>
-                    <span>{event.description || event.status}</span>
-                  </div>
-                ))}
+              <div className="mt-4 pt-3 border-t border-blue-200">
+                <p className="text-xs font-medium text-blue-700 mb-2">Tracking History</p>
+                <div className="space-y-2">
+                  {tracking.events.slice(0, 5).map((event, i) => (
+                    <div key={i} className="text-xs text-blue-600 flex gap-2">
+                      <span className="text-blue-400 shrink-0">
+                        {new Date(event.timestamp || event.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                      </span>
+                      <span>{event.description || event.status}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+
+            <a
+              href={`https://www.thecourierguy.co.za/tracking?reference=${order.tracking_reference}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 w-full py-2.5 flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Track on The Courier Guy
+            </a>
           </div>
         )}
 

@@ -506,7 +506,35 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map(order => (
+                  {orders.map(order => {
+                    const isDelivery = order.delivery_method === 'delivery';
+                    const hasTracking = !!order.tracking_reference;
+                    // Determine display status
+                    let statusLabel = order.status.charAt(0).toUpperCase() + order.status.slice(1);
+                    let statusClass = 'bg-gray-100 text-gray-600';
+                    if (order.status === 'delivered') {
+                      statusLabel = 'Delivered';
+                      statusClass = 'bg-green-100 text-green-700';
+                    } else if (order.status === 'shipped') {
+                      statusLabel = 'In Transit';
+                      statusClass = 'bg-blue-100 text-blue-700';
+                    } else if (order.status === 'paid' && isDelivery && hasTracking) {
+                      statusLabel = 'Courier Booked';
+                      statusClass = 'bg-blue-100 text-blue-700';
+                    } else if (order.status === 'paid' && !isDelivery) {
+                      statusLabel = 'Arrange Collection';
+                      statusClass = 'bg-green-100 text-green-700';
+                    } else if (order.status === 'paid') {
+                      statusLabel = 'Paid';
+                      statusClass = 'bg-green-100 text-green-700';
+                    } else if (order.status === 'pending') {
+                      statusLabel = 'Payment Pending';
+                      statusClass = 'bg-yellow-100 text-yellow-700';
+                    } else if (order.status === 'cancelled') {
+                      statusLabel = 'Cancelled';
+                      statusClass = 'bg-red-100 text-red-700';
+                    }
+                    return (
                     <Link
                       key={order.id}
                       to={`/orders/${order.id}`}
@@ -526,21 +554,21 @@ export default function Profile() {
                         <p className="text-sm text-gray-500">
                           From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
+                        {isDelivery && hasTracking && (
+                          <p className="text-xs text-blue-600 mt-0.5">
+                            Tracking: {order.tracking_reference}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          order.status === 'paid' ? 'bg-green-100 text-green-700' :
-                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          order.status === 'delivered' ? 'bg-blue-100 text-blue-700' :
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
+                          {statusLabel}
                         </span>
                       </div>
                     </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               )
             ) : (

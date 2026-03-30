@@ -113,7 +113,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name
+        seller.name as seller_name, seller.phone as seller_phone
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
