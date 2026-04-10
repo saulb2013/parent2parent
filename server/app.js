@@ -19,7 +19,10 @@ app.set('db', pool);
 // Middleware
 const allowedOrigins = process.env.CLIENT_URL || 'http://localhost:3000';
 app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.use(express.json());
+// Capture raw body so webhook handlers can verify HMAC signatures
+app.use(express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

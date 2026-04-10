@@ -2,6 +2,7 @@ services:
   - type: web
     name: parent2parent
     runtime: node
+    plan: starter
     buildCommand: npm run build
     startCommand: npm start
     envVars:
