@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { AGE_STAGES } from '../constants/ageStages';
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -27,6 +28,7 @@ export default function EditListing() {
 
   const [form, setForm] = useState({
     title: '', description: '', category_id: '', condition: '',
+    age_stage: '',
     price: '', negotiable: false, province: '', city: '',
   });
 
@@ -45,6 +47,7 @@ export default function EditListing() {
         description: l.description,
         category_id: l.category_id.toString(),
         condition: l.condition,
+        age_stage: l.age_stage || '',
         price: (l.price / 100).toString(),
         negotiable: l.negotiable,
         province: l.province,
@@ -90,6 +93,7 @@ export default function EditListing() {
       formData.append('negotiable', form.negotiable ? '1' : '0');
       formData.append('province', form.province);
       formData.append('city', form.city);
+      if (form.age_stage) formData.append('age_stage', form.age_stage);
       newImages.forEach(img => formData.append('images', img));
 
       const res = await fetch(`/api/listings/${id}`, {
@@ -238,6 +242,21 @@ export default function EditListing() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Age / Stage */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Age / Stage <span className="text-gray-400 font-normal">(optional)</span></label>
+          <select
+            value={form.age_stage}
+            onChange={e => updateForm('age_stage', e.target.value)}
+            className="input-field"
+          >
+            <option value="">Not specified</option>
+            {AGE_STAGES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Description */}

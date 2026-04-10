@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import { useListings } from '../hooks/useListings';
+import { AGE_STAGES } from '../constants/ageStages';
 
 const provinces = [
   '', 'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -33,6 +34,7 @@ export default function Browse() {
     province: searchParams.get('province') || '',
     search: searchParams.get('search') || '',
     condition: searchParams.get('condition') || '',
+    ageStage: searchParams.get('ageStage') || '',
     sort: searchParams.get('sort') || '',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
@@ -174,9 +176,24 @@ export default function Browse() {
               </div>
             </div>
 
+            {/* Age / Stage */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 block mb-2">Age / Stage</label>
+              <select
+                value={filters.ageStage}
+                onChange={e => updateFilter('ageStage', e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="">All ages</option>
+                {AGE_STAGES.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Reset */}
             <button
-              onClick={() => setFilters({ category: '', province: '', search: '', condition: '', sort: '', minPrice: '', maxPrice: '', page: 1 })}
+              onClick={() => setFilters({ category: '', province: '', search: '', condition: '', ageStage: '', sort: '', minPrice: '', maxPrice: '', page: 1 })}
               className="text-sm text-accent-dark hover:underline"
             >
               Reset all filters

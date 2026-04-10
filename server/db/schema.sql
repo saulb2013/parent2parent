@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS listings (
   province TEXT NOT NULL,
   city TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK(status IN ('active','sold','archived','hidden')),
+  age_stage TEXT,
   views INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

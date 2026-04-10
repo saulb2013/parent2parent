@@ -4,6 +4,7 @@ import { formatPrice } from '../utils/formatPrice';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import ListingCard from '../components/ListingCard';
+import { AGE_STAGE_LABELS } from '../constants/ageStages';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -141,6 +142,9 @@ export default function ListingDetail() {
             {listing.negotiable ? (
               <span className="text-sm text-accent-dark font-medium bg-badge px-3 py-1 rounded-full">Negotiable</span>
             ) : null}
+            {listing.age_stage && AGE_STAGE_LABELS[listing.age_stage] && (
+              <span className="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">{AGE_STAGE_LABELS[listing.age_stage]}</span>
+            )}
           </div>
 
           <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">

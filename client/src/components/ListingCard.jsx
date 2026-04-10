@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { formatPrice } from '../utils/formatPrice';
 import Badge from './Badge';
+import { AGE_STAGE_LABELS } from '../constants/ageStages';
 
 export default function ListingCard({ listing }) {
   const timeAgo = getTimeAgo(listing.created_at);
@@ -30,6 +31,9 @@ export default function ListingCard({ listing }) {
           {listing.title}
         </h3>
         <p className="text-xl font-bold text-primary mt-1">{formatPrice(listing.price)}</p>
+        {listing.age_stage && AGE_STAGE_LABELS[listing.age_stage] && (
+          <p className="text-xs text-gray-500 mt-1">{AGE_STAGE_LABELS[listing.age_stage]}</p>
+        )}
         <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
           <div className="flex items-center gap-2">
             {listing.seller_avatar ? (
