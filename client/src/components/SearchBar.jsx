@@ -27,7 +27,7 @@ export default function SearchBar({ className = '', defaultSearch = '', defaultP
         </svg>
         <input
           type="text"
-          placeholder="Search for prams, car seats, toys..."
+          placeholder="Search prams, toys, clothing…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="input-field pl-10"
@@ -43,7 +43,7 @@ export default function SearchBar({ className = '', defaultSearch = '', defaultP
         ))}
       </select>
       <button type="submit" className="btn-primary whitespace-nowrap">
-        Search
+        Find what you need
       </button>
     </form>
   );

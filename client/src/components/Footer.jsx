@@ -13,7 +13,7 @@ export default function Footer() {
               <span className="font-display text-xl font-bold text-white">Parent</span>
             </div>
             <p className="text-sm text-green-200 leading-relaxed">
-              Previously loved. Ready for more. South Africa's premium marketplace for pre-loved baby and kids products.
+              South Africa's trusted marketplace for pre-loved baby & kids items.
             </p>
           </div>
 

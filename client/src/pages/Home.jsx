@@ -28,20 +28,20 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 relative">
           <div className="max-w-2xl mx-auto text-center">
             <h1 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight">
-              Give it a second life.
+              Made for parents. Built on trust.
             </h1>
             <p className="mt-4 text-lg text-green-100 max-w-lg mx-auto">
-              South Africa's trusted marketplace for premium pre-loved baby and kids products. Because loved items deserve a beautiful second chapter.
+              South Africa's trusted marketplace for quality baby and kids products — saving money, reducing waste, and giving every item a second home.
             </p>
             <div className="mt-8">
               <SearchBar className="max-w-xl mx-auto" />
             </div>
             <div className="mt-6 flex flex-wrap gap-3 justify-center">
               <Link to="/browse" className="btn-accent">
-                Browse Listings
+                Shop pre-loved items
               </Link>
               <Link to="/sell" className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
-                Sell an Item
+                Sell in minutes
               </Link>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function Home() {
             Join thousands of South African parents buying and selling pre-loved kids gear.
           </p>
           <div className="mt-8 flex flex-wrap gap-4 justify-center">
-            <Link to="/register" className="btn-accent text-lg">Get Started Free</Link>
+            <Link to="/sell" className="btn-accent text-lg">Start Selling</Link>
             <Link to="/browse" className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-all text-lg">
               Browse Listings
             </Link>

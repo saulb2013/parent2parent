@@ -10,8 +10,8 @@ const provinces = [
 const conditions = [
   { value: 'new', label: 'New', desc: 'Brand new, never used' },
   { value: 'like_new', label: 'Like New', desc: 'Barely used, excellent condition' },
-  { value: 'good', label: 'Good', desc: 'Normal wear, fully functional' },
-  { value: 'fair', label: 'Fair', desc: 'Some wear, but works well' },
+  { value: 'good', label: 'Gently used', desc: 'Normal wear, fully functional' },
+  { value: 'fair', label: 'Well used', desc: 'Some wear, but works well' },
 ];
 
 export default function CreateListing() {

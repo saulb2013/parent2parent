@@ -12,8 +12,8 @@ const conditions = [
   { value: '', label: 'All Conditions' },
   { value: 'new', label: 'New' },
   { value: 'like_new', label: 'Like New' },
-  { value: 'good', label: 'Good' },
-  { value: 'fair', label: 'Fair' },
+  { value: 'good', label: 'Gently used' },
+  { value: 'fair', label: 'Well used' },
 ];
 
 const sortOptions = [
@@ -66,7 +66,7 @@ export default function Browse() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-3xl font-bold text-gray-900">Browse Listings</h1>
+          <h1 className="font-display text-3xl font-bold text-gray-900">Pre-loved items from parents near you</h1>
           <p className="text-gray-500 text-sm mt-1">{pagination.total} items found</p>
         </div>
         <div className="flex items-center gap-3">
@@ -97,7 +97,7 @@ export default function Browse() {
               <label className="text-sm font-semibold text-gray-700 block mb-2">Search</label>
               <input
                 type="text"
-                placeholder="Keywords..."
+                placeholder="Search prams, toys, clothing…"
                 value={filters.search}
                 onChange={e => updateFilter('search', e.target.value)}
                 className="input-field text-sm"

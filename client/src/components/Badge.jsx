@@ -2,8 +2,8 @@ const variants = {
   condition: {
     new: { label: 'New', className: 'bg-primary text-white' },
     like_new: { label: 'Like New', className: 'bg-primary-light text-white' },
-    good: { label: 'Good', className: 'bg-accent text-white' },
-    fair: { label: 'Fair', className: 'bg-gray-400 text-white' },
+    good: { label: 'Gently used', className: 'bg-accent text-white' },
+    fair: { label: 'Well used', className: 'bg-gray-400 text-white' },
   },
   status: {
     active: { label: 'Active', className: 'bg-success text-white' },
