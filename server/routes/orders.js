@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { signOrderToken } = require('../utils/orderTokens');
 
 const router = express.Router();
 
@@ -99,7 +100,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    res.json({ order: rows[0] });
+    // Attach the signed tracking token so the client can render a
+    // shareable public tracking link (/track/:id?t=...) without
+    // hitting another endpoint.
+    const order = { ...rows[0], tracking_token: signOrderToken(rows[0].id) };
+    res.json({ order });
   } catch (err) {
     console.error('Get order error:', err);
     res.status(500).json({ error: 'Failed to get order' });

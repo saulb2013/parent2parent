@@ -142,8 +142,19 @@ export default function OrderConfirmation() {
                   <p className="text-xs text-blue-700">No scan events yet — check back after collection.</p>
                 )}
 
+                {order.tracking_token && (
+                  <a
+                    href={`/track/${order.id}?t=${order.tracking_token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+                  >
+                    Track my order
+                  </a>
+                )}
+
                 <p className="mt-4 pt-4 border-t border-blue-200 text-center text-xs text-blue-600">
-                  Live tracking provided by The Courier Guy.
+                  Live tracking provided by The Courier Guy. Share the tracking link — no login needed.
                 </p>
               </>
             ) : (
