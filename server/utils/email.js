@@ -107,7 +107,7 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
     </div>
     ${!isCollect ? `
     <p style="color: #666; font-size: 13px; line-height: 1.6; margin: 0 0 20px;">
-      We'll email you when your parcel is shipped and again when it arrives. You can also check the live status any time using the button below.
+      The Courier Guy will keep you in the loop at every step — from collection to delivery — straight to this email. You can also check the live status any time using the button below.
     </p>` : ''}
     <div style="text-align: center; margin: 24px 0 8px;">
       <a href="${trackUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">${ctaLabel}</a>
