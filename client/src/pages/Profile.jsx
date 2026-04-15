@@ -296,7 +296,7 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Phone (for WhatsApp)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
                   <input
                     type="tel"
                     value={editForm.phone}
@@ -304,7 +304,7 @@ export default function Profile() {
                     placeholder="e.g., 27821234567"
                     className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Include country code (27) for WhatsApp to work</p>
+                  <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +27) — used for order updates and courier coordination</p>
                 </div>
 
                 <div>

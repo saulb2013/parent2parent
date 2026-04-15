@@ -69,8 +69,8 @@ export default function Home() {
               </svg>
             </div>
             <div className="text-left">
-              <p className="font-semibold text-sm text-gray-800">WhatsApp Connect</p>
-              <p className="text-xs text-gray-500">Message sellers directly</p>
+              <p className="font-semibold text-sm text-gray-800">Secure payments</p>
+              <p className="text-xs text-gray-500">Buy and sell safely in-app</p>
             </div>
           </div>
           <div className="flex items-center justify-center gap-3">
@@ -131,7 +131,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: '1', icon: '📸', title: 'List Your Item', desc: 'Snap a few photos, add a description and price. Your listing goes live in minutes.' },
-              { step: '2', icon: '💬', title: 'Connect with Parents', desc: 'Interested buyers contact you directly via WhatsApp. Chat, negotiate, and arrange a meet.' },
+              { step: '2', icon: '💬', title: 'Connect with Parents', desc: 'Interested buyers check out through the app. Secure payments, clear condition standards, and in-app updates every step of the way.' },
               { step: '3', icon: '🤝', title: 'Make the Sale', desc: 'Meet up, inspect the item, and complete the transaction. Simple, safe, and local.' },
             ].map(item => (
               <div key={item.step} className="text-center">

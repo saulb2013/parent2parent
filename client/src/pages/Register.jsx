@@ -130,7 +130,7 @@ export default function Register() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">WhatsApp Number</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Mobile Number</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -138,7 +138,7 @@ export default function Register() {
                 className="input-field"
                 placeholder="+27 82 123 4567"
               />
-              <p className="text-xs text-gray-400 mt-1">Buyers will contact you via WhatsApp</p>
+              <p className="text-xs text-gray-400 mt-1">Used for order updates and courier coordination</p>
             </div>
             <button
               type="submit"

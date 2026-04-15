@@ -318,7 +318,7 @@ export default function Checkout() {
                     <h3 className="font-semibold text-gray-900">Collect</h3>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Pay online, then WhatsApp the seller to arrange collection from <strong>{listing.city}, {listing.province}</strong>
+                    Pay online, then arrange collection with the seller from <strong>{listing.city}, {listing.province}</strong>
                   </p>
                   <p className="text-xs text-primary font-medium mt-2">Free — no delivery fee</p>
                 </button>
@@ -505,7 +505,7 @@ export default function Checkout() {
                   </div>
                   <hr className="border-primary/10 my-3" />
                   <p className="text-sm text-gray-600">
-                    After payment, you'll be able to WhatsApp the seller to arrange a convenient time and exact location for collection.
+                    After payment, the seller will be notified and can coordinate a convenient time and exact location for collection.
                   </p>
                 </div>
               </div>

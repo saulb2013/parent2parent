@@ -63,7 +63,7 @@ async function sendSellerNotification({ sellerEmail, sellerName, buyerName, list
     <div style="background: #f0fdf4; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
       <p style="margin: 0; color: #166534; font-size: 14px;">
         ${isCollect
-          ? 'The buyer chose <strong>collection</strong>. They will WhatsApp you to arrange pickup.'
+          ? 'The buyer chose <strong>collection</strong>. Get in touch using the contact details on the order page to arrange pickup.'
           : `The buyer chose <strong>delivery</strong> to ${deliveryCity || 'their address'}. The Courier Guy will handle shipping.`
         }
       </p>
@@ -93,7 +93,7 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
     <div style="background: ${isCollect ? '#eff6ff' : '#fefce8'}; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
       <p style="margin: 0; color: ${isCollect ? '#1e40af' : '#854d0e'}; font-size: 14px;">
         ${isCollect
-          ? `<strong>Next step:</strong> WhatsApp ${sellerName} to arrange collection.`
+          ? `<strong>Next step:</strong> ${sellerName} has been notified and will be in touch to arrange collection.`
           : '<strong>Next step:</strong> The Courier Guy will collect from the seller and deliver to you.'
         }
       </p>
