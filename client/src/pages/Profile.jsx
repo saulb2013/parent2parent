@@ -304,7 +304,7 @@ export default function Profile() {
                     placeholder="e.g., 27821234567"
                     className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +27) — used for order updates and courier coordination</p>
+                  <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +27). The courier will call this number if they can't find you on collection or delivery day.</p>
                 </div>
 
                 <div>

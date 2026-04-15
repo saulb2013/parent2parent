@@ -138,7 +138,7 @@ export default function Register() {
                 className="input-field"
                 placeholder="+27 82 123 4567"
               />
-              <p className="text-xs text-gray-400 mt-1">Used for order updates and courier coordination</p>
+              <p className="text-xs text-gray-400 mt-1">The courier will call this number if they can't find you on collection or delivery day.</p>
             </div>
             <button
               type="submit"

@@ -122,16 +122,17 @@ export default function CreateListing() {
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-12">
         <div className="card p-6 sm:p-8">
           <h1 className="font-display text-2xl font-bold text-gray-900 mb-2">
-            Complete your profile before listing
+            A few details, then you're ready to sell
           </h1>
           <p className="text-gray-600 text-sm leading-relaxed mb-5">
-            Parent2Parent ships every order through The Courier Guy, so we need
-            a full collection address and a mobile number on file before you
-            can list an item. It only takes a minute.
+            Every sold item is shipped via The Courier Guy. To make sure your
+            collection goes smoothly, we need a full pickup address and a mobile
+            number the driver can call if they can't find you on the day. It only
+            takes a minute, and you'll never have to do it again.
           </p>
           <div className="bg-badge rounded-lg p-4 mb-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">
-              Missing from your profile
+              Still needed for courier collection
             </p>
             <ul className="text-sm text-gray-700 space-y-1">
               {missingFields.map(f => (
