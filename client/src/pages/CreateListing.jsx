@@ -1,8 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AGE_STAGES } from '../constants/ageStages';
 import { PARCEL_SIZES, DEFAULT_PARCEL_SIZE } from '../constants/parcelSizes';
+
+// Fields the courier needs for collection. If any are missing, sellers
+// can't list — we gate the Sell page rather than letting them fill out
+// the form only to fail at POST time.
+const REQUIRED_PROFILE_FIELDS = [
+  { key: 'street_address', label: 'Street address' },
+  { key: 'city',           label: 'City' },
+  { key: 'province',       label: 'Province' },
+  { key: 'postal_code',    label: 'Postal code' },
+  { key: 'phone',          label: 'Mobile number' },
+];
+
+function getMissingProfileFields(user) {
+  if (!user) return [];
+  return REQUIRED_PROFILE_FIELDS.filter(f => !user[f.key] || !String(user[f.key]).trim());
+}
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -17,7 +33,7 @@ const conditions = [
 ];
 
 export default function CreateListing() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [categories, setCategories] = useState([]);
@@ -88,6 +104,51 @@ export default function CreateListing() {
       setSubmitting(false);
     }
   };
+
+  // Wait for auth resolution before deciding what to render, otherwise
+  // we'd briefly flash the "complete your profile" screen for fully-
+  // set-up users while /api/auth/me is in flight.
+  if (authLoading || !user) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-500">
+        Loading…
+      </div>
+    );
+  }
+
+  const missingFields = getMissingProfileFields(user);
+  if (missingFields.length > 0) {
+    return (
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-12">
+        <div className="card p-6 sm:p-8">
+          <h1 className="font-display text-2xl font-bold text-gray-900 mb-2">
+            Complete your profile before listing
+          </h1>
+          <p className="text-gray-600 text-sm leading-relaxed mb-5">
+            Parent2Parent ships every order through The Courier Guy, so we need
+            a full collection address and a mobile number on file before you
+            can list an item. It only takes a minute.
+          </p>
+          <div className="bg-badge rounded-lg p-4 mb-6">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">
+              Missing from your profile
+            </p>
+            <ul className="text-sm text-gray-700 space-y-1">
+              {missingFields.map(f => (
+                <li key={f.key} className="flex items-center gap-2">
+                  <span className="text-accent-dark">•</span>
+                  {f.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Link to={`/profile/${user.id}`} className="btn-primary inline-block">
+            Complete profile
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">

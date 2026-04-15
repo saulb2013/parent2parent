@@ -148,6 +148,27 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
     return res.status(400).json({ error: 'All fields are required' });
   }
 
+  // Sellers must have a complete collection address before listing —
+  // otherwise the courier can't pick up after a sale completes.
+  const { rows: sellerRows } = await db.query(
+    'SELECT street_address, city, province, postal_code, phone FROM users WHERE id = $1',
+    [req.user.id]
+  );
+  const seller = sellerRows[0];
+  const missing = [];
+  if (!seller?.street_address?.trim()) missing.push('street address');
+  if (!seller?.city?.trim()) missing.push('city');
+  if (!seller?.province?.trim()) missing.push('province');
+  if (!seller?.postal_code?.trim()) missing.push('postal code');
+  if (!seller?.phone?.trim()) missing.push('mobile number');
+  if (missing.length) {
+    return res.status(400).json({
+      error: 'Complete your profile before listing',
+      reason: 'incomplete_profile',
+      missing,
+    });
+  }
+
   try {
     const { rows } = await db.query(
       `INSERT INTO listings (title, description, price, negotiable, condition, category_id, seller_id, province, city, age_stage, parcel_size)

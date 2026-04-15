@@ -14,16 +14,16 @@ async function seed() {
   const passwordHash = bcrypt.hashSync('password123', 10);
 
   const users = [
-    ['Naledi Mokoena', 'naledi@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=naledi', 'Gauteng', 'Johannesburg', '+27821234567', 'Mom of two, decluttering our playroom. Everything well cared for!'],
-    ['Johan van der Merwe', 'johan@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=johan', 'Western Cape', 'Cape Town', '+27839876543', 'First-time dad selling items our little one has outgrown.'],
-    ['Priya Naidoo', 'priya@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya', 'KwaZulu-Natal', 'Durban', '+27845551234', 'Twin mom! Double of everything means double the items to share.'],
-    ['Thabo Dlamini', 'thabo@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=thabo', 'Gauteng', 'Pretoria', '+27861112233', 'Our kids grow so fast! Quality items looking for loving new homes.'],
-    ['Sarah Botha', 'sarah@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah', 'Eastern Cape', 'Port Elizabeth', '+27872223344', 'Passionate about sustainable parenting. Buy pre-loved, save the planet!']
+    ['Naledi Mokoena', 'naledi@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=naledi', 'Gauteng', 'Johannesburg', '+27821234567', 'Mom of two, decluttering our playroom. Everything well cared for!', '45 Jan Smuts Avenue', '2196'],
+    ['Johan van der Merwe', 'johan@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=johan', 'Western Cape', 'Cape Town', '+27839876543', 'First-time dad selling items our little one has outgrown.', '78 Long Street', '8001'],
+    ['Priya Naidoo', 'priya@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya', 'KwaZulu-Natal', 'Durban', '+27845551234', 'Twin mom! Double of everything means double the items to share.', '23 Florida Road', '4001'],
+    ['Thabo Dlamini', 'thabo@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=thabo', 'Gauteng', 'Pretoria', '+27861112233', 'Our kids grow so fast! Quality items looking for loving new homes.', '56 Lynnwood Road', '0081'],
+    ['Sarah Botha', 'sarah@example.com', passwordHash, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah', 'Eastern Cape', 'Port Elizabeth', '+27872223344', 'Passionate about sustainable parenting. Buy pre-loved, save the planet!', '34 Cape Road', '6001']
   ];
 
   for (const u of users) {
     await pool.query(
-      'INSERT INTO users (name, email, password_hash, avatar_url, province, city, phone, bio) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+      'INSERT INTO users (name, email, password_hash, avatar_url, province, city, phone, bio, street_address, postal_code) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
       u
     );
   }

@@ -23,6 +23,27 @@ async function runMigrations() {
     await pool.query(
       `ALTER TABLE listings ADD COLUMN IF NOT EXISTS parcel_size TEXT DEFAULT 'medium'`
     );
+
+    // 2026-04-15: backfill street_address + postal_code for the seed
+    // users so couriered shipments have a valid collection address.
+    // Idempotent — only updates rows where the field is currently
+    // null/empty, so re-running is safe and won't clobber real data.
+    const seedAddresses = [
+      ['naledi@example.com', '45 Jan Smuts Avenue', '2196'],
+      ['johan@example.com',  '78 Long Street',      '8001'],
+      ['priya@example.com',  '23 Florida Road',     '4001'],
+      ['thabo@example.com',  '56 Lynnwood Road',    '0081'],
+      ['sarah@example.com',  '34 Cape Road',        '6001'],
+    ];
+    for (const [email, street, postal] of seedAddresses) {
+      await pool.query(
+        `UPDATE users
+           SET street_address = COALESCE(NULLIF(street_address, ''), $2),
+               postal_code    = COALESCE(NULLIF(postal_code, ''), $3)
+         WHERE email = $1`,
+        [email, street, postal]
+      );
+    }
   } catch (err) {
     console.error('[DB MIGRATION] Failed:', err.message);
   }

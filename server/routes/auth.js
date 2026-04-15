@@ -80,7 +80,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   const db = req.app.get('db');
   try {
     const { rows } = await db.query(
-      'SELECT id, name, email, avatar_url, province, city, phone, bio, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, province, city, phone, bio, street_address, postal_code, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });
