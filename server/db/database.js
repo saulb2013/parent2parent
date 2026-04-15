@@ -24,6 +24,16 @@ async function runMigrations() {
       `ALTER TABLE listings ADD COLUMN IF NOT EXISTS parcel_size TEXT DEFAULT 'medium'`
     );
 
+    // 2026-04-15: separate the TCG-facing waybill from Shiplogic's
+    // short internal reference. tracking_reference was being used for
+    // both, which broke the TCG deep-link when only the short one
+    // came back. Keep the existing column for the short ref (still
+    // needed for Shiplogic status polling) and add a dedicated column
+    // for the human-facing TCG waybill (e.g. "TCG1234567890").
+    await pool.query(
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS tcg_waybill TEXT`
+    );
+
     // 2026-04-15: backfill street_address + postal_code for the seed
     // users so couriered shipments have a valid collection address.
     // Idempotent — only updates rows where the field is currently

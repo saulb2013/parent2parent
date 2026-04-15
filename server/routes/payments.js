@@ -141,12 +141,19 @@ async function handleOrderPaid(pool, orderId) {
         if (shipRes.ok) {
           const shipData = await shipRes.json();
           const shipmentId = shipData.id || shipData.shipment_id;
-          const trackingRef = shipData.tracking_reference || shipData.short_tracking_reference || '';
+          // Shiplogic returns both. Keep them in separate columns:
+          //   tracking_reference → Shiplogic's short ref (6-char),
+          //     used for our API polling (/tracking/shipments).
+          //   tcg_waybill → the "TCG1234567890" format TCG's public
+          //     tracking site needs. Fields tried in order because
+          //     Shiplogic has renamed these historically.
+          const trackingRef = shipData.short_tracking_reference || shipData.tracking_reference || '';
+          const tcgWaybill = shipData.tracking_reference || shipData.waybill_number || shipData.waybill || shipData.tcg_waybill || '';
           await pool.query(
-            'UPDATE orders SET shipment_id = $1, tracking_reference = $2, updated_at = NOW() WHERE id = $3',
-            [String(shipmentId), trackingRef, order.id]
+            'UPDATE orders SET shipment_id = $1, tracking_reference = $2, tcg_waybill = $3, updated_at = NOW() WHERE id = $4',
+            [String(shipmentId), trackingRef, tcgWaybill, order.id]
           );
-          console.log(`[TCG] Shipment created for order #${order.id}: ${trackingRef}`);
+          console.log(`[TCG] Shipment created for order #${order.id}: short=${trackingRef} waybill=${tcgWaybill}`);
         } else {
           const errText = await shipRes.text();
           console.error('[TCG] Failed to create shipment:', errText);
@@ -221,7 +228,7 @@ async function handleOrderPaid(pool, orderId) {
         totalPrice: eo.total_price,
         deliveryMethod: eo.delivery_method,
         clientUrl,
-        trackingReference: eo.tracking_reference || null,
+        tcgWaybill: eo.tcg_waybill || null,
         trackingToken: signOrderToken(eo.id),
       }).then(() => console.log(`[EMAIL] Buyer confirmed for order #${eo.id}`))
         .catch(err => console.error('[EMAIL] Buyer confirmation failed:', err.message));

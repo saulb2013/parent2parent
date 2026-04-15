@@ -179,15 +179,16 @@ router.post('/shipment', authenticateToken, async (req, res) => {
     });
 
     const shipmentId = data.id || data.shipment_id;
-    const trackingRef = data.tracking_reference || data.short_tracking_reference || '';
+    const trackingRef = data.short_tracking_reference || data.tracking_reference || '';
+    const tcgWaybill = data.tracking_reference || data.waybill_number || data.waybill || data.tcg_waybill || '';
 
     // Store shipment info on order
     await pool.query(
-      'UPDATE orders SET shipment_id = $1, tracking_reference = $2, updated_at = NOW() WHERE id = $3',
-      [String(shipmentId), trackingRef, order.id]
+      'UPDATE orders SET shipment_id = $1, tracking_reference = $2, tcg_waybill = $3, updated_at = NOW() WHERE id = $4',
+      [String(shipmentId), trackingRef, tcgWaybill, order.id]
     );
 
-    res.json({ shipmentId, trackingReference: trackingRef });
+    res.json({ shipmentId, trackingReference: trackingRef, tcgWaybill });
   } catch (err) {
     console.error('Create shipment error:', err);
     res.status(500).json({ error: err.message || 'Failed to create shipment' });
@@ -263,7 +264,7 @@ router.get('/public-track/:orderId', async (req, res) => {
     const pool = req.app.get('db');
     const { rows: orders } = await pool.query(
       `SELECT o.id, o.status, o.delivery_method, o.delivery_city, o.delivery_province,
-              o.tracking_reference, l.title as listing_title
+              o.tracking_reference, o.tcg_waybill, l.title as listing_title
          FROM orders o
          JOIN listings l ON o.listing_id = l.id
         WHERE o.id = $1`,
@@ -281,6 +282,7 @@ router.get('/public-track/:orderId', async (req, res) => {
         deliveryProvince: order.delivery_province,
         orderStatus: order.status,
         trackingReference: null,
+        tcgWaybill: null,
         status: null,
         events: [],
         estimatedDelivery: null,
@@ -305,6 +307,7 @@ router.get('/public-track/:orderId', async (req, res) => {
       deliveryProvince: order.delivery_province,
       orderStatus: order.status,
       trackingReference: order.tracking_reference,
+      tcgWaybill: order.tcg_waybill,
       status: shipment.status || null,
       events: shipment.tracking_events || [],
       estimatedDelivery: shipment.delivery_date_to || null,
@@ -312,6 +315,44 @@ router.get('/public-track/:orderId', async (req, res) => {
   } catch (err) {
     console.error('Public track error:', err);
     res.status(500).json({ error: 'Failed to fetch tracking' });
+  }
+});
+
+// One-off admin backfill — for orders that were booked before we
+// started storing tcg_waybill separately, re-query Shiplogic for
+// the full waybill and save it. Requires the caller to be logged
+// in (authenticateToken) and be either the buyer or seller on the
+// order.
+router.post('/backfill-waybill/:orderId', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    const { rows: orders } = await pool.query(
+      'SELECT * FROM orders WHERE id = $1 AND (buyer_id = $2 OR seller_id = $2)',
+      [req.params.orderId, req.user.id]
+    );
+    if (!orders.length) return res.status(404).json({ error: 'Order not found' });
+
+    const order = orders[0];
+    if (!order.shipment_id) return res.status(400).json({ error: 'Order has no shipment' });
+    if (order.tcg_waybill) return res.json({ message: 'Already has waybill', tcgWaybill: order.tcg_waybill });
+
+    const data = await tcgFetch(`/shipments/${order.shipment_id}`);
+    const tcgWaybill = data.tracking_reference || data.waybill_number || data.waybill || '';
+    const shortRef = data.short_tracking_reference || order.tracking_reference;
+
+    if (!tcgWaybill) {
+      return res.status(404).json({ error: 'Waybill not yet available from Shiplogic' });
+    }
+
+    await pool.query(
+      'UPDATE orders SET tcg_waybill = $1, tracking_reference = $2 WHERE id = $3',
+      [tcgWaybill, shortRef, order.id]
+    );
+
+    res.json({ tcgWaybill, trackingReference: shortRef });
+  } catch (err) {
+    console.error('Backfill waybill error:', err);
+    res.status(500).json({ error: err.message || 'Backfill failed' });
   }
 });
 

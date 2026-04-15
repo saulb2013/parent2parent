@@ -564,9 +564,9 @@ export default function Profile() {
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
                           {statusLabel}
                         </span>
-                        {isDelivery && hasTracking && (
+                        {isDelivery && order.tcg_waybill && (
                           <a
-                            href={`https://www.thecourierguy.co.za/track?tracking_ref=${encodeURIComponent(order.tracking_reference)}`}
+                            href={`https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(order.tcg_waybill)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}

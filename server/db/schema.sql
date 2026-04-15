@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS orders (
   status TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid','shipped','delivered','cancelled','refunded')),
   payment_reference TEXT,
   tracking_reference TEXT,
+  tcg_waybill TEXT,
   shipment_id TEXT,
   courier_fee INTEGER,
   service_level_code TEXT,

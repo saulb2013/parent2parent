@@ -122,14 +122,20 @@ export default function OrderConfirmation() {
                   )}
                 </div>
 
-                <a
-                  href={tcgTrackingUrl(order.tracking_reference)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
-                >
-                  Track Order
-                </a>
+                {order.tcg_waybill ? (
+                  <a
+                    href={tcgTrackingUrl(order.tcg_waybill)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+                  >
+                    Track Order
+                  </a>
+                ) : (
+                  <p className="text-center text-sm text-blue-700 py-2">
+                    Waybill number is on its way — usually available within an hour of booking.
+                  </p>
+                )}
 
                 {order.tracking_token && (
                   <a
@@ -143,7 +149,11 @@ export default function OrderConfirmation() {
                 )}
 
                 <p className="mt-4 pt-4 border-t border-blue-200 text-center text-[11px] text-blue-500">
-                  Reference <span className="tabular">{order.tracking_reference}</span> · Live tracking by The Courier Guy.
+                  {order.tcg_waybill ? (
+                    <>Waybill <span className="tabular">{order.tcg_waybill}</span></>
+                  ) : (
+                    <>Reference <span className="tabular">{order.tracking_reference}</span></>
+                  )}{' '}· Live tracking by The Courier Guy.
                 </p>
               </>
             ) : (

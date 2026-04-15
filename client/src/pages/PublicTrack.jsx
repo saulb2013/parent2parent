@@ -101,17 +101,27 @@ function TrackingPanel({ data, friendlyStatus }) {
         )}
       </div>
 
-      <a
-        href={tcgTrackingUrl(data.trackingReference)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
-      >
-        Track Order
-      </a>
+      {data.tcgWaybill ? (
+        <a
+          href={tcgTrackingUrl(data.tcgWaybill)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+        >
+          Track Order
+        </a>
+      ) : (
+        <p className="text-center text-sm text-blue-700 py-2">
+          Waybill number is on its way — usually available within an hour of booking.
+        </p>
+      )}
 
       <p className="mt-4 pt-4 border-t border-blue-200 text-center text-[11px] text-blue-500">
-        Reference <span className="tabular">{data.trackingReference}</span> · Live tracking by The Courier Guy.
+        {data.tcgWaybill ? (
+          <>Waybill <span className="tabular">{data.tcgWaybill}</span></>
+        ) : (
+          <>Reference <span className="tabular">{data.trackingReference}</span></>
+        )}{' '}· Live tracking by The Courier Guy.
       </p>
     </div>
   );

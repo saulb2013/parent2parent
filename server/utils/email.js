@@ -80,14 +80,15 @@ async function sendSellerNotification({ sellerEmail, sellerName, buyerName, list
   });
 }
 
-async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, trackingReference, trackingToken }) {
+async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, tcgWaybill, trackingToken }) {
   const isCollect = deliveryMethod === 'collect';
   // Destination priority for the CTA:
-  //   1. TCG's own tracking page — richest UX (map, ETA, proof of
-  //      delivery). Only possible if the shipment has been booked
-  //      and we already have a tracking reference at email time.
+  //   1. TCG's public tracking page — richest UX (map, ETA, proof
+  //      of delivery). Requires the TCG waybill ("TCG1234567890"),
+  //      NOT Shiplogic's short tracking reference. The waybill isn't
+  //      always available at email-send time.
   //   2. Our public tracking page — works logged-out via signed
-  //      token. Used before the shipment is booked or as a fallback.
+  //      token. Used before the waybill lands or as a fallback.
   //   3. The authenticated order page — for collection orders
   //      (no courier to track).
   let trackUrl;
@@ -95,8 +96,8 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
   if (isCollect) {
     trackUrl = `${clientUrl}/orders/${orderId}`;
     ctaLabel = 'View order details';
-  } else if (trackingReference) {
-    trackUrl = `https://www.thecourierguy.co.za/track?tracking_ref=${encodeURIComponent(trackingReference)}`;
+  } else if (tcgWaybill) {
+    trackUrl = `https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(tcgWaybill)}`;
     ctaLabel = 'Track Order';
   } else if (trackingToken) {
     trackUrl = `${clientUrl}/track/${orderId}?t=${trackingToken}`;
@@ -116,7 +117,7 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
       <p style="margin: 0; color: ${isCollect ? '#1e40af' : '#166534'}; font-size: 14px;">
         ${isCollect
           ? `<strong>Next step:</strong> ${sellerName} has been notified and will be in touch to arrange collection.`
-          : `<strong>Next step:</strong> The Courier Guy will collect from the seller and deliver to you.${trackingReference ? ` Your tracking number is <strong>${trackingReference}</strong>.` : ''}`
+          : `<strong>Next step:</strong> The Courier Guy will collect from the seller and deliver to you.${tcgWaybill ? ` Your waybill is <strong>${tcgWaybill}</strong>.` : ''}`
         }
       </p>
     </div>
