@@ -82,14 +82,29 @@ async function sendSellerNotification({ sellerEmail, sellerName, buyerName, list
 
 async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, trackingReference, trackingToken }) {
   const isCollect = deliveryMethod === 'collect';
-  // Prefer the public tracking URL if we have a token — works even if
-  // the buyer opens the email on a device where they're not logged in.
-  // Falls back to the authenticated order page for collection orders
-  // (no courier to track) or when the token is missing.
-  const trackUrl = !isCollect && trackingToken
-    ? `${clientUrl}/track/${orderId}?t=${trackingToken}`
-    : `${clientUrl}/orders/${orderId}`;
-  const ctaLabel = isCollect ? 'View order details' : 'Track my order';
+  // Destination priority for the CTA:
+  //   1. TCG's own tracking page — richest UX (map, ETA, proof of
+  //      delivery). Only possible if the shipment has been booked
+  //      and we already have a tracking reference at email time.
+  //   2. Our public tracking page — works logged-out via signed
+  //      token. Used before the shipment is booked or as a fallback.
+  //   3. The authenticated order page — for collection orders
+  //      (no courier to track).
+  let trackUrl;
+  let ctaLabel;
+  if (isCollect) {
+    trackUrl = `${clientUrl}/orders/${orderId}`;
+    ctaLabel = 'View order details';
+  } else if (trackingReference) {
+    trackUrl = `https://www.thecourierguy.co.za/track?tracking_ref=${encodeURIComponent(trackingReference)}`;
+    ctaLabel = 'Track Order';
+  } else if (trackingToken) {
+    trackUrl = `${clientUrl}/track/${orderId}?t=${trackingToken}`;
+    ctaLabel = 'Track my order';
+  } else {
+    trackUrl = `${clientUrl}/orders/${orderId}`;
+    ctaLabel = 'View order details';
+  }
 
   const html = emailWrapper(`
     <h2 style="color: #2D6A4F; font-size: 20px; margin: 0 0 16px;">Payment confirmed!</h2>

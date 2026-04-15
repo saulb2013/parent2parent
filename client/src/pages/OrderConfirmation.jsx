@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
+import { tcgTrackingUrl } from '../utils/tracking';
 
 export default function OrderConfirmation() {
   const { id } = useParams();
@@ -103,58 +104,46 @@ export default function OrderConfirmation() {
             </p>
             {order.tracking_reference ? (
               <>
-                <div className="flex items-start justify-between mb-4 pb-4 border-b border-blue-200">
-                  <div>
-                    <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Tracking number</p>
-                    <p className="text-base font-bold text-blue-900 tabular">{order.tracking_reference}</p>
-                  </div>
-                  {tracking?.status && (
-                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-blue-600 text-white capitalize">
+                <div className="flex items-center justify-between mb-4">
+                  {tracking?.status ? (
+                    <span className="inline-flex items-center text-sm font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white capitalize">
                       {tracking.status.replace(/-/g, ' ')}
                     </span>
+                  ) : (
+                    <span className="text-sm text-blue-700">Shipment booked</span>
+                  )}
+                  {tracking?.estimatedDelivery && (
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-wider text-blue-600">Estimated arrival</p>
+                      <p className="text-sm font-semibold text-blue-900">
+                        {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                {tracking?.estimatedDelivery && (
-                  <div className="mb-4">
-                    <p className="text-xs text-blue-700 mb-0.5">Estimated delivery</p>
-                    <p className="text-sm font-medium text-blue-900">
-                      {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                  </div>
-                )}
-
-                {tracking?.events?.length > 0 ? (
-                  <div>
-                    <p className="text-xs font-medium text-blue-700 mb-2">Tracking history</p>
-                    <div className="space-y-2">
-                      {tracking.events.slice(0, 5).map((event, i) => (
-                        <div key={i} className="text-xs text-blue-800 flex gap-2">
-                          <span className="text-blue-500 shrink-0 w-16">
-                            {new Date(event.timestamp || event.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
-                          </span>
-                          <span>{event.description || event.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-blue-700">No scan events yet — check back after collection.</p>
-                )}
+                <a
+                  href={tcgTrackingUrl(order.tracking_reference)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+                >
+                  Track Order
+                </a>
 
                 {order.tracking_token && (
                   <a
                     href={`/track/${order.id}?t=${order.tracking_token}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+                    className="block text-center text-xs text-blue-700 hover:text-blue-900 mt-2"
                   >
-                    Track my order
+                    Or share a link without login →
                   </a>
                 )}
 
-                <p className="mt-4 pt-4 border-t border-blue-200 text-center text-xs text-blue-600">
-                  Live tracking provided by The Courier Guy. Share the tracking link — no login needed.
+                <p className="mt-4 pt-4 border-t border-blue-200 text-center text-[11px] text-blue-500">
+                  Reference <span className="tabular">{order.tracking_reference}</span> · Live tracking by The Courier Guy.
                 </p>
               </>
             ) : (

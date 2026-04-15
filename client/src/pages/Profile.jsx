@@ -535,38 +535,48 @@ export default function Profile() {
                       statusClass = 'bg-red-100 text-red-700';
                     }
                     return (
-                    <Link
+                    <div
                       key={order.id}
-                      to={`/orders/${order.id}`}
                       className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
                     >
-                      {order.listing_image ? (
-                        <img src={order.listing_image} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
-                      ) : (
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
-                        <p className="text-sm text-gray-500">
-                          From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
-                        {isDelivery && hasTracking && (
-                          <p className="text-xs text-blue-600 mt-0.5">
-                            Tracking: {order.tracking_reference}
-                          </p>
+                      <Link
+                        to={`/orders/${order.id}`}
+                        className="flex items-center gap-4 flex-1 min-w-0"
+                      >
+                        {order.listing_image ? (
+                          <img src={order.listing_image} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
                         )}
-                      </div>
-                      <div className="text-right shrink-0">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
+                          <p className="text-sm text-gray-500">
+                            From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </Link>
+                      <div className="text-right shrink-0 flex flex-col items-end gap-2">
                         <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
                           {statusLabel}
                         </span>
+                        {isDelivery && hasTracking && (
+                          <a
+                            href={`https://www.thecourierguy.co.za/track?tracking_ref=${encodeURIComponent(order.tracking_reference)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full transition-colors"
+                          >
+                            Track Order
+                          </a>
+                        )}
                       </div>
-                    </Link>
+                    </div>
                     );
                   })}
                 </div>

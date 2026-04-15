@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { tcgTrackingUrl } from '../utils/tracking';
 
 // Public, token-gated tracking page. Linked from the buyer's
 // "Track my order" email button so they don't need to be logged in.
@@ -82,49 +83,35 @@ export default function PublicTrack() {
 function TrackingPanel({ data, friendlyStatus }) {
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-      <div className="flex items-start justify-between mb-4 pb-4 border-b border-blue-200">
-        <div>
-          <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Tracking number</p>
-          <p className="text-base font-bold text-blue-900 tabular">{data.trackingReference}</p>
-        </div>
-        {friendlyStatus && (
-          <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-blue-600 text-white capitalize">
+      <div className="flex items-center justify-between mb-5">
+        {friendlyStatus ? (
+          <span className="inline-flex items-center text-sm font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white capitalize">
             {friendlyStatus}
           </span>
+        ) : (
+          <span className="text-sm text-blue-700">Shipment booked</span>
+        )}
+        {data.estimatedDelivery && (
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-blue-600">Estimated arrival</p>
+            <p className="text-sm font-semibold text-blue-900">
+              {new Date(data.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </p>
+          </div>
         )}
       </div>
 
-      {data.estimatedDelivery && (
-        <div className="mb-4">
-          <p className="text-xs text-blue-700 mb-0.5">Estimated delivery</p>
-          <p className="text-sm font-medium text-blue-900">
-            {new Date(data.estimatedDelivery).toLocaleDateString('en-ZA', {
-              weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-            })}
-          </p>
-        </div>
-      )}
+      <a
+        href={tcgTrackingUrl(data.trackingReference)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+      >
+        Track Order
+      </a>
 
-      {data.events?.length > 0 ? (
-        <div>
-          <p className="text-xs font-medium text-blue-700 mb-2">Tracking history</p>
-          <div className="space-y-2">
-            {data.events.slice(0, 8).map((event, i) => (
-              <div key={i} className="text-xs text-blue-800 flex gap-2">
-                <span className="text-blue-500 shrink-0 w-16">
-                  {new Date(event.timestamp || event.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
-                </span>
-                <span>{event.description || event.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="text-xs text-blue-700">No scan events yet. Check back after collection.</p>
-      )}
-
-      <p className="mt-4 pt-4 border-t border-blue-200 text-center text-xs text-blue-600">
-        Live tracking provided by The Courier Guy.
+      <p className="mt-4 pt-4 border-t border-blue-200 text-center text-[11px] text-blue-500">
+        Reference <span className="tabular">{data.trackingReference}</span> · Live tracking by The Courier Guy.
       </p>
     </div>
   );
