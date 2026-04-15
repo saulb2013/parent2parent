@@ -110,4 +110,42 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
   });
 }
 
-module.exports = { sendBrevoEmail, sendSellerNotification, sendBuyerConfirmation };
+// Send an operational alert to the site owner. Used for things that need
+// human intervention — e.g. a paid order where shipment creation failed
+// and a courier won't be dispatched unless someone steps in. Falls back
+// to the hardcoded default if ADMIN_ALERT_EMAIL is not set.
+async function sendAdminAlert({ subject, body, context = {} }) {
+  const to = process.env.ADMIN_ALERT_EMAIL || 'saul.bloch13@gmail.com';
+  const contextRows = Object.entries(context)
+    .map(([k, v]) => `
+      <tr>
+        <td style="padding: 6px 10px; color: #666; font-size: 12px; border-bottom: 1px solid #eee; vertical-align: top;">${k}</td>
+        <td style="padding: 6px 10px; color: #111; font-size: 13px; border-bottom: 1px solid #eee; font-family: ui-monospace, monospace; word-break: break-all;">${String(v ?? '—')}</td>
+      </tr>
+    `)
+    .join('');
+
+  const html = emailWrapper(`
+    <p style="margin: 0 0 8px; color: #b91c1c; font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">Action needed</p>
+    <h2 style="color: #111; font-size: 20px; margin: 0 0 16px;">${subject}</h2>
+    <p style="color: #555; line-height: 1.6; margin: 0 0 16px; font-size: 14px;">${body}</p>
+    ${contextRows ? `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+        ${contextRows}
+      </table>
+    ` : ''}
+  `);
+
+  try {
+    await sendBrevoEmail({
+      to,
+      subject: `[Parent2Parent] ${subject}`,
+      html,
+    });
+    console.log(`[ALERT] Admin notified: ${subject}`);
+  } catch (err) {
+    console.error('[ALERT] Failed to send admin alert:', err.message);
+  }
+}
+
+module.exports = { sendBrevoEmail, sendSellerNotification, sendBuyerConfirmation, sendAdminAlert };

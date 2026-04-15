@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { authenticateToken } = require('../middleware/auth');
-const { sendSellerNotification, sendBuyerConfirmation } = require('../utils/email');
+const { sendSellerNotification, sendBuyerConfirmation, sendAdminAlert } = require('../utils/email');
 const { parcelForShiplogic } = require('../utils/parcelSizes');
 
 const router = express.Router();
@@ -147,11 +147,38 @@ async function handleOrderPaid(pool, orderId) {
           );
           console.log(`[TCG] Shipment created for order #${order.id}: ${trackingRef}`);
         } else {
-          console.error('[TCG] Failed to create shipment:', await shipRes.text());
+          const errText = await shipRes.text();
+          console.error('[TCG] Failed to create shipment:', errText);
+          // Buyer has paid but no courier will be dispatched — alert
+          // the operator so they can manually create the shipment in
+          // the TCG portal before the buyer starts asking questions.
+          sendAdminAlert({
+            subject: `Shipment creation failed for order #${order.id}`,
+            body: `Order #${order.id} was paid but The Courier Guy rejected the shipment request. No courier has been dispatched. Create the shipment manually in the TCG portal or follow up with the seller/buyer.`,
+            context: {
+              orderId: order.id,
+              sellerName: o.seller_name,
+              sellerCity: o.seller_city,
+              sellerPhone: o.seller_phone,
+              buyerName: o.buyer_name,
+              deliveryCity: o.delivery_city,
+              listing: o.listing_title,
+              tcgStatus: shipRes.status,
+              tcgError: errText.slice(0, 500),
+            },
+          }).catch(() => {});
         }
       }
     } catch (shipErr) {
       console.error('[TCG] Auto-shipment error:', shipErr.message);
+      sendAdminAlert({
+        subject: `Shipment creation threw for order #${order.id}`,
+        body: `Order #${order.id} was paid but the TCG call threw before it got a response. Order is in "paid" status with no shipment attached. Investigate in the TCG portal or retry manually.`,
+        context: {
+          orderId: order.id,
+          error: shipErr.message,
+        },
+      }).catch(() => {});
     }
   }
 
