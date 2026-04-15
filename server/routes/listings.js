@@ -142,7 +142,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/listings
 router.post('/', authenticateToken, upload.array('images', 6), async (req, res) => {
   const db = req.app.get('db');
-  const { title, description, price, negotiable, condition, category_id, province, city, age_stage } = req.body;
+  const { title, description, price, negotiable, condition, category_id, province, city, age_stage, parcel_size } = req.body;
 
   if (!title || !description || !price || !condition || !category_id || !province || !city) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -150,9 +150,9 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO listings (title, description, price, negotiable, condition, category_id, seller_id, province, city, age_stage)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [title, description, parseInt(price), negotiable === 'true' || negotiable === '1', condition, parseInt(category_id), req.user.id, province, city, age_stage || null]
+      `INSERT INTO listings (title, description, price, negotiable, condition, category_id, seller_id, province, city, age_stage, parcel_size)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [title, description, parseInt(price), negotiable === 'true' || negotiable === '1', condition, parseInt(category_id), req.user.id, province, city, age_stage || null, parcel_size || 'medium']
     );
     const listingId = rows[0].id;
 
@@ -181,15 +181,16 @@ router.put('/:id', authenticateToken, upload.array('images', 6), async (req, res
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
     if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
 
-    const { title, description, price, negotiable, condition, category_id, province, city, status, age_stage } = req.body;
+    const { title, description, price, negotiable, condition, category_id, province, city, status, age_stage, parcel_size } = req.body;
 
     await db.query(
       `UPDATE listings SET title = COALESCE($1, title), description = COALESCE($2, description),
        price = COALESCE($3, price), negotiable = COALESCE($4, negotiable), condition = COALESCE($5, condition),
        category_id = COALESCE($6, category_id), province = COALESCE($7, province), city = COALESCE($8, city),
-       status = COALESCE($9, status), age_stage = COALESCE($10, age_stage), updated_at = NOW()
-       WHERE id = $11`,
-      [title, description, price ? parseInt(price) : null, negotiable != null ? (negotiable === 'true' || negotiable === '1' || negotiable === true) : null, condition, category_id ? parseInt(category_id) : null, province, city, status, age_stage || null, req.params.id]
+       status = COALESCE($9, status), age_stage = COALESCE($10, age_stage),
+       parcel_size = COALESCE($11, parcel_size), updated_at = NOW()
+       WHERE id = $12`,
+      [title, description, price ? parseInt(price) : null, negotiable != null ? (negotiable === 'true' || negotiable === '1' || negotiable === true) : null, condition, category_id ? parseInt(category_id) : null, province, city, status, age_stage || null, parcel_size || null, req.params.id]
     );
 
     // Handle new image uploads

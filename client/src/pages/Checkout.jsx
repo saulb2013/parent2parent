@@ -156,6 +156,7 @@ export default function Checkout() {
         deliveryCity: form.deliveryCity,
         deliveryPostalCode: form.deliveryPostalCode,
         deliveryProvince: form.deliveryProvince,
+        parcelSize: listing.parcel_size,
       }),
     })
       .then(r => r.json())

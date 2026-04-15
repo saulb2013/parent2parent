@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS listings (
   city TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK(status IN ('active','sold','archived','hidden')),
   age_stage TEXT,
+  parcel_size TEXT DEFAULT 'medium',
   views INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

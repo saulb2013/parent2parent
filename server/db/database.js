@@ -16,6 +16,13 @@ async function runMigrations() {
     await pool.query(
       `ALTER TABLE listings ADD COLUMN IF NOT EXISTS age_stage TEXT`
     );
+
+    // 2026-04-15: per-listing parcel size so shipping quotes and
+    // shipment creation use accurate dimensions instead of a global
+    // 5kg/30×30×20 hardcode.
+    await pool.query(
+      `ALTER TABLE listings ADD COLUMN IF NOT EXISTS parcel_size TEXT DEFAULT 'medium'`
+    );
   } catch (err) {
     console.error('[DB MIGRATION] Failed:', err.message);
   }

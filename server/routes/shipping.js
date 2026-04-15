@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { parcelForShiplogic } = require('../utils/parcelSizes');
 
 const router = express.Router();
 
@@ -41,6 +42,7 @@ router.post('/rates', authenticateToken, async (req, res) => {
       deliveryCity,
       deliveryPostalCode,
       deliveryProvince,
+      parcelSize,
     } = req.body;
 
     const ratesBody = {
@@ -62,14 +64,7 @@ router.post('/rates', authenticateToken, async (req, res) => {
         country: 'ZA',
         code: deliveryPostalCode || '',
       },
-      parcels: [
-        {
-          submitted_length_cm: 30,
-          submitted_width_cm: 30,
-          submitted_height_cm: 20,
-          submitted_weight_kg: 5,
-        },
-      ],
+      parcels: [parcelForShiplogic(parcelSize)],
     };
 
     const data = await tcgFetch('/rates', {

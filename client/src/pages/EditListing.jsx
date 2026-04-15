@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AGE_STAGES } from '../constants/ageStages';
+import { PARCEL_SIZES, DEFAULT_PARCEL_SIZE } from '../constants/parcelSizes';
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -29,6 +30,7 @@ export default function EditListing() {
   const [form, setForm] = useState({
     title: '', description: '', category_id: '', condition: '',
     age_stage: '',
+    parcel_size: DEFAULT_PARCEL_SIZE,
     price: '', negotiable: false, province: '', city: '',
   });
 
@@ -48,6 +50,7 @@ export default function EditListing() {
         category_id: l.category_id.toString(),
         condition: l.condition,
         age_stage: l.age_stage || '',
+        parcel_size: l.parcel_size || DEFAULT_PARCEL_SIZE,
         price: (l.price / 100).toString(),
         negotiable: l.negotiable,
         province: l.province,
@@ -94,6 +97,7 @@ export default function EditListing() {
       formData.append('province', form.province);
       formData.append('city', form.city);
       if (form.age_stage) formData.append('age_stage', form.age_stage);
+      if (form.parcel_size) formData.append('parcel_size', form.parcel_size);
       newImages.forEach(img => formData.append('images', img));
 
       const res = await fetch(`/api/listings/${id}`, {
@@ -257,6 +261,31 @@ export default function EditListing() {
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
+        </div>
+
+        {/* Parcel size */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Parcel size</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {PARCEL_SIZES.map(s => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => updateForm('parcel_size', s.value)}
+                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                  form.parcel_size === s.value
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold text-sm">{s.label}</p>
+                <p className="text-xs text-gray-500">{s.desc}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Pick the size that best fits your item packed. Accurate sizing keeps shipping quotes honest.
+          </p>
         </div>
 
         {/* Description */}
