@@ -224,7 +224,7 @@ export default function Checkout() {
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error);
 
-      // Step 2: Immediately initiate payment — redirect to Stitch
+      // Step 2: Immediately initiate payment — redirect to Yoco checkout
       const payRes = await fetch('/api/payments/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,7 +235,7 @@ export default function Checkout() {
       const payData = await payRes.json();
       if (!payRes.ok) throw new Error(payData.error || 'Failed to initiate payment');
 
-      // Redirect to Stitch payment page
+      // Redirect to hosted Yoco payment page
       window.location.href = payData.paymentUrl;
     } catch (err) {
       setError(err.message || 'Failed to process checkout');

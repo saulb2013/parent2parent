@@ -5,78 +5,55 @@ const { sendSellerNotification, sendBuyerConfirmation } = require('../utils/emai
 
 const router = express.Router();
 
-const STITCH_BASE_URL = 'https://express.stitch.money/api/v1';
+const YOCO_BASE_URL = 'https://payments.yoco.com/api';
 
-// Get Stitch Express access token
-async function getStitchToken() {
-  const res = await fetch(`${STITCH_BASE_URL}/token`, {
+// Create a Yoco hosted checkout for an order. Stores the checkout id on the
+// order so we can poll status and round-trip through the webhook later.
+async function createYocoCheckout({ order, clientUrl }) {
+  const returnUrl = `${clientUrl}/payment/return?orderId=${order.id}`;
+  const res = await fetch(`${YOCO_BASE_URL}/checkouts`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.YOCO_SECRET_KEY}`,
+      'Idempotency-Key': `order-${order.id}-${Date.now()}`,
+    },
     body: JSON.stringify({
-      clientId: process.env.STITCH_CLIENT_ID,
-      clientSecret: process.env.STITCH_CLIENT_SECRET,
-      scope: 'client_paymentrequest',
+      amount: order.total_price,
+      currency: 'ZAR',
+      successUrl: `${returnUrl}&status=success`,
+      cancelUrl: `${returnUrl}&status=cancelled`,
+      failureUrl: `${returnUrl}&status=failed`,
+      metadata: {
+        orderId: String(order.id),
+        buyerId: String(order.buyer_id),
+        sellerId: String(order.seller_id),
+      },
     }),
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Stitch token error ${res.status}: ${err}`);
+    const errText = await res.text();
+    throw new Error(`Yoco checkout creation failed (${res.status}): ${errText}`);
   }
-
-  const data = await res.json();
-  return data.data?.accessToken || data.accessToken;
+  return res.json();
 }
 
-// Ensure our redirect URL is registered with Stitch (called once on first payment)
-let registeredRedirectUrl = null;
-
-async function ensureRedirectUrl(token) {
-  const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
-  const returnUrl = `${clientUrl}/payment/return`;
-
-  if (registeredRedirectUrl) return returnUrl;
-
-  // Check existing redirect URLs
-  const listRes = await fetch(`${STITCH_BASE_URL}/redirect-urls`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+// Fetch the latest status of a Yoco checkout.
+async function getYocoCheckout(checkoutId) {
+  const res = await fetch(`${YOCO_BASE_URL}/checkouts/${checkoutId}`, {
+    headers: { 'Authorization': `Bearer ${process.env.YOCO_SECRET_KEY}` },
   });
-
-  if (listRes.ok) {
-    const listData = await listRes.json();
-    const urls = listData.data || listData;
-    const existing = Array.isArray(urls) && urls.find(u => u.redirectUrl === returnUrl);
-    if (existing) {
-      registeredRedirectUrl = returnUrl;
-      return returnUrl;
-    }
+  if (!res.ok) {
+    throw new Error(`Yoco status check failed: ${res.status}`);
   }
-
-  // Register our redirect URL
-  const regRes = await fetch(`${STITCH_BASE_URL}/redirect-urls`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ redirectUrl: returnUrl }),
-  });
-
-  if (!regRes.ok) {
-    const errText = await regRes.text();
-    console.error('Failed to register redirect URL:', errText);
-    // Continue without redirect — better than failing the payment
-    return null;
-  }
-
-  console.log('[STITCH] Registered redirect URL:', returnUrl);
-  registeredRedirectUrl = returnUrl;
-  return returnUrl;
+  return res.json();
 }
 
 // Mark an order as paid and run post-payment side effects (shipment, emails).
-// Idempotent: if the order is already paid, this is a no-op.
-// Used by both the polling status check and the Stitch webhook.
+// Idempotent: if the order is already paid, this is a no-op. Used by both
+// the polling status check and the Yoco webhook so duplicate triggers don't
+// double-process.
 async function handleOrderPaid(pool, orderId) {
   const { rows: orders } = await pool.query(
     'SELECT * FROM orders WHERE id = $1',
@@ -225,102 +202,53 @@ async function handleOrderPaid(pool, orderId) {
   return { changed: true, order };
 }
 
-// Initiate payment for an order
+// Initiate payment for an order — creates a Yoco checkout, stores the id,
+// returns the hosted checkout URL the client should redirect the buyer to.
 router.post('/initiate', authenticateToken, async (req, res) => {
   try {
     const pool = req.app.get('db');
     const { orderId } = req.body;
 
-    // Get order + buyer info
     const { rows: orders } = await pool.query(
-      `SELECT o.*, u.name as buyer_name, u.email as buyer_email, u.phone as buyer_phone_profile
-       FROM orders o JOIN users u ON o.buyer_id = u.id
-       WHERE o.id = $1 AND o.buyer_id = $2`,
+      'SELECT * FROM orders WHERE id = $1 AND buyer_id = $2',
       [orderId, req.user.id]
     );
-
-    if (!orders.length) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+    if (!orders.length) return res.status(404).json({ error: 'Order not found' });
 
     const order = orders[0];
-
     if (order.status !== 'pending') {
       return res.status(400).json({ error: 'Order is not pending payment' });
     }
 
-    const token = await getStitchToken();
+    const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
+    const checkout = await createYocoCheckout({ order, clientUrl });
 
-    // Ensure redirect URL is registered
-    const redirectUrl = await ensureRedirectUrl(token);
-
-    // Stitch Express expects amount in cents (integer)
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
-
-    const paymentBody = {
-      amount: order.total_price,
-      merchantReference: `P2P-Order-${order.id}`,
-      expiresAt,
-      payerName: order.buyer_name || 'Parent2Parent Buyer',
-    };
-
-    if (order.buyer_email) {
-      paymentBody.payerEmailAddress = order.buyer_email;
-    }
-
-    const phone = order.buyer_phone || order.buyer_phone_profile;
-    if (phone) {
-      // Ensure E164 format
-      let formatted = phone.replace(/[^0-9+]/g, '');
-      if (formatted.startsWith('0')) formatted = '+27' + formatted.slice(1);
-      if (!formatted.startsWith('+')) formatted = '+' + formatted;
-      paymentBody.payerPhoneNumber = formatted;
-    }
-
-    const payRes = await fetch(`${STITCH_BASE_URL}/payment-links`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(paymentBody),
-    });
-
-    if (!payRes.ok) {
-      const errText = await payRes.text();
-      throw new Error(`Stitch payment error ${payRes.status}: ${errText}`);
-    }
-
-    const paymentRes = await payRes.json();
-
-    // Response is nested in data.payment
-    const payment = paymentRes.data?.payment || paymentRes.data || paymentRes;
-
-    if (!payment.link) {
-      throw new Error('No payment link returned from Stitch: ' + JSON.stringify(paymentRes));
-    }
-
-    // Store Stitch payment ID on the order
     await pool.query(
       'UPDATE orders SET payment_reference = $1, updated_at = NOW() WHERE id = $2',
-      [payment.id, order.id]
+      [checkout.id, order.id]
     );
 
-    // Append redirect URL with orderId so we can check status on return
-    let paymentUrl = payment.link;
-    if (redirectUrl) {
-      const returnWithOrder = `${redirectUrl}?orderId=${order.id}`;
-      paymentUrl = `${payment.link}?redirect_url=${encodeURIComponent(returnWithOrder)}`;
-    }
-
-    res.json({ paymentUrl, paymentId: payment.id });
+    res.json({ paymentUrl: checkout.redirectUrl, checkoutId: checkout.id });
   } catch (err) {
-    console.error('Payment initiation error:', err);
+    console.error('[YOCO] Initiate error:', err);
     res.status(500).json({ error: err.message || 'Failed to initiate payment' });
   }
 });
 
-// Check payment status
+// Map Yoco's checkout status to our internal vocabulary.
+function isPaidStatus(status) {
+  const s = (status || '').toLowerCase();
+  return s === 'successful' || s === 'succeeded' || s === 'paid' || s === 'completed';
+}
+function isCancelledStatus(status) {
+  return (status || '').toLowerCase() === 'cancelled';
+}
+function isFailedStatus(status) {
+  const s = (status || '').toLowerCase();
+  return s === 'failed' || s === 'expired';
+}
+
+// Check payment status — used by PaymentReturn polling.
 router.get('/status/:orderId', authenticateToken, async (req, res) => {
   try {
     const pool = req.app.get('db');
@@ -328,160 +256,161 @@ router.get('/status/:orderId', authenticateToken, async (req, res) => {
       'SELECT * FROM orders WHERE id = $1 AND (buyer_id = $2 OR seller_id = $2)',
       [req.params.orderId, req.user.id]
     );
-
-    if (!orders.length) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+    if (!orders.length) return res.status(404).json({ error: 'Order not found' });
 
     const order = orders[0];
-
     if (!order.payment_reference) {
       return res.json({ status: 'pending', paymentStatus: null });
     }
 
-    // Query Stitch Express for payment status
-    const token = await getStitchToken();
+    const checkout = await getYocoCheckout(order.payment_reference);
+    const yocoStatus = checkout.status;
 
-    const statusRes = await fetch(`${STITCH_BASE_URL}/payment-links/${order.payment_reference}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-
-    if (!statusRes.ok) {
-      throw new Error(`Stitch status check failed: ${statusRes.status}`);
-    }
-
-    const statusData = await statusRes.json();
-    const payment = statusData.data?.payment || statusData.data || statusData;
-    const stitchStatus = payment.status; // PENDING, PAID, SETTLED, EXPIRED, CANCELLED
-
-    // Update order status based on payment state
-    if ((stitchStatus === 'PAID' || stitchStatus === 'SETTLED') && order.status === 'pending') {
+    if (isPaidStatus(yocoStatus) && order.status === 'pending') {
       await handleOrderPaid(pool, order.id);
-      return res.json({ status: 'paid', paymentStatus: stitchStatus });
+      return res.json({ status: 'paid', paymentStatus: 'PAID' });
     }
-
-    if (stitchStatus === 'CANCELLED') {
+    if (isCancelledStatus(yocoStatus)) {
       return res.json({ status: order.status, paymentStatus: 'cancelled' });
     }
-
-    if (stitchStatus === 'EXPIRED') {
-      return res.json({ status: order.status, paymentStatus: 'expired' });
+    if (isFailedStatus(yocoStatus)) {
+      return res.json({ status: order.status, paymentStatus: 'failed' });
     }
 
-    res.json({ status: order.status, paymentStatus: stitchStatus || 'pending' });
+    res.json({ status: order.status, paymentStatus: yocoStatus || 'pending' });
   } catch (err) {
-    console.error('Payment status error:', err);
+    console.error('[YOCO] Status error:', err);
     res.status(500).json({ error: 'Failed to check payment status' });
   }
 });
 
-// Verify HMAC-SHA256 signature on a Stitch webhook request.
-// Stitch returns a `secret` when the webhook is registered (POST /webhook).
-// The secret is stored as STITCH_WEBHOOK_SECRET. The signature header name is
-// not yet documented by Stitch — we look in the most likely places and accept
-// either hex or base64 digests. Set STITCH_WEBHOOK_SKIP_VERIFY=true ONLY for
-// initial sandbox debugging — never in production.
-function verifyStitchSignature(req) {
-  if (process.env.STITCH_WEBHOOK_SKIP_VERIFY === 'true') return true;
+// Verify a Yoco webhook signature using the Standard Webhooks spec
+// (https://www.standardwebhooks.com). Yoco signs with HMAC-SHA256 over
+// `{webhook-id}.{webhook-timestamp}.{rawBody}` using the shared secret
+// (which is base64-encoded with a `whsec_` prefix). Multiple signatures
+// can be present in the header — any one matching is sufficient.
+function verifyYocoSignature(req) {
+  if (process.env.YOCO_WEBHOOK_SKIP_VERIFY === 'true') return true;
 
-  const secret = process.env.STITCH_WEBHOOK_SECRET;
+  const secret = process.env.YOCO_WEBHOOK_SECRET;
   if (!secret) {
-    console.error('[STITCH WEBHOOK] STITCH_WEBHOOK_SECRET is not set — refusing webhook');
+    console.error('[YOCO WEBHOOK] YOCO_WEBHOOK_SECRET is not set');
     return false;
   }
 
-  const provided =
-    req.get('x-stitch-signature') ||
-    req.get('stitch-signature') ||
-    req.get('x-webhook-signature') ||
-    req.get('x-signature');
-  if (!provided) {
-    console.error('[STITCH WEBHOOK] No signature header on request');
+  const id = req.get('webhook-id');
+  const timestamp = req.get('webhook-timestamp');
+  const sigHeader = req.get('webhook-signature');
+  if (!id || !timestamp || !sigHeader) {
+    console.error('[YOCO WEBHOOK] Missing webhook-id/timestamp/signature header');
+    return false;
+  }
+
+  // Reject events more than 5 minutes old (replay protection).
+  const now = Math.floor(Date.now() / 1000);
+  const ts = parseInt(timestamp, 10);
+  if (!Number.isFinite(ts) || Math.abs(now - ts) > 300) {
+    console.error(`[YOCO WEBHOOK] Stale timestamp: ${timestamp} (now=${now})`);
     return false;
   }
 
   const raw = req.rawBody;
   if (!raw) {
-    console.error('[STITCH WEBHOOK] Raw body unavailable — cannot verify signature');
+    console.error('[YOCO WEBHOOK] Raw body unavailable');
     return false;
   }
 
-  const hmac = crypto.createHmac('sha256', secret).update(raw);
-  const hex = hmac.digest('hex');
-  const b64 = crypto.createHmac('sha256', secret).update(raw).digest('base64');
+  const cleanSecret = secret.startsWith('whsec_') ? secret.slice(6) : secret;
+  let keyBytes;
+  try {
+    keyBytes = Buffer.from(cleanSecret, 'base64');
+  } catch {
+    console.error('[YOCO WEBHOOK] Failed to decode secret');
+    return false;
+  }
 
-  // Strip common prefixes (e.g. "sha256=...")
-  const cleaned = provided.replace(/^sha256=/i, '').trim();
+  const signedPayload = `${id}.${timestamp}.${raw.toString('utf8')}`;
+  const expected = crypto.createHmac('sha256', keyBytes).update(signedPayload).digest('base64');
 
-  const safeEqual = (a, b) => {
+  // Header format: "v1,sig1 v1,sig2 ..."
+  const candidates = sigHeader.split(' ').map(part => {
+    const [version, sig] = part.split(',');
+    return { version, sig };
+  });
+
+  return candidates.some(({ version, sig }) => {
+    if (version !== 'v1' || !sig) return false;
     try {
-      const ab = Buffer.from(a);
-      const bb = Buffer.from(b);
-      return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+      const a = Buffer.from(sig);
+      const b = Buffer.from(expected);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
     } catch {
       return false;
     }
-  };
-
-  return safeEqual(cleaned, hex) || safeEqual(cleaned, b64);
+  });
 }
 
-// Webhook from Stitch
-// Always responds 200 quickly so Stitch doesn't retry — failures are logged.
+// Webhook from Yoco. Acks 200 immediately, then verifies + processes.
 router.post('/webhook', async (req, res) => {
-  // Acknowledge immediately; processing happens after.
   res.status(200).json({ received: true });
 
   try {
-    if (!verifyStitchSignature(req)) {
-      console.warn('[STITCH WEBHOOK] Signature verification failed; ignoring event');
+    if (!verifyYocoSignature(req)) {
+      console.warn('[YOCO WEBHOOK] Signature verification failed; ignoring event');
       return;
     }
 
     const event = req.body || {};
-    console.log('[STITCH WEBHOOK]', JSON.stringify(event));
+    console.log('[YOCO WEBHOOK]', JSON.stringify(event));
 
-    // Stitch's exact event shape isn't fully documented — extract defensively.
-    const payload = event.data || event.payment || event;
-    const eventType = (event.type || event.eventType || payload.eventType || '').toString().toLowerCase();
-    const paymentStatus = (payload.status || event.status || '').toString().toUpperCase();
-    const paymentRef = payload.id || payload.paymentId || payload.paymentLinkId || payload.reference || event.id;
+    // Standard webhooks event shape: { type, id, payload: { ... } }
+    const type = (event.type || '').toLowerCase();
+    const payload = event.payload || event.data || event;
 
-    if (!paymentRef) {
-      console.warn('[STITCH WEBHOOK] No payment reference in event payload');
+    // We only act on successful payments. Other event types are logged and
+    // ignored — the polling fallback will catch anything we miss.
+    const isSuccess =
+      type.includes('payment.succeeded') ||
+      type.includes('checkout.succeeded') ||
+      type.includes('payment.success') ||
+      isPaidStatus(payload.status);
+    if (!isSuccess) {
+      console.log(`[YOCO WEBHOOK] Ignoring event type=${type} status=${payload.status}`);
       return;
     }
 
-    const isPaid =
-      paymentStatus === 'PAID' ||
-      paymentStatus === 'SETTLED' ||
-      eventType.includes('paid') ||
-      eventType.includes('settled') ||
-      eventType.includes('success');
-
-    if (!isPaid) {
-      console.log(`[STITCH WEBHOOK] Ignoring non-paid event (status=${paymentStatus}, type=${eventType})`);
-      return;
-    }
+    // Find the order — prefer metadata.orderId we set at checkout creation,
+    // fall back to looking up by checkout id stored as payment_reference.
+    const orderIdFromMeta = payload.metadata?.orderId;
+    const checkoutId = payload.checkoutId || payload.id;
 
     const pool = req.app.get('db');
-    const { rows } = await pool.query(
-      'SELECT id FROM orders WHERE payment_reference = $1',
-      [String(paymentRef)]
-    );
-    if (!rows.length) {
-      console.warn(`[STITCH WEBHOOK] No order found for payment reference ${paymentRef}`);
+    let orderRow;
+    if (orderIdFromMeta) {
+      const { rows } = await pool.query('SELECT id FROM orders WHERE id = $1', [orderIdFromMeta]);
+      orderRow = rows[0];
+    }
+    if (!orderRow && checkoutId) {
+      const { rows } = await pool.query(
+        'SELECT id FROM orders WHERE payment_reference = $1',
+        [String(checkoutId)]
+      );
+      orderRow = rows[0];
+    }
+
+    if (!orderRow) {
+      console.warn(`[YOCO WEBHOOK] No order found for metadata.orderId=${orderIdFromMeta} checkoutId=${checkoutId}`);
       return;
     }
 
-    const result = await handleOrderPaid(pool, rows[0].id);
+    const result = await handleOrderPaid(pool, orderRow.id);
     if (result.changed) {
-      console.log(`[STITCH WEBHOOK] Order #${rows[0].id} marked paid via webhook`);
+      console.log(`[YOCO WEBHOOK] Order #${orderRow.id} marked paid via webhook`);
     } else {
-      console.log(`[STITCH WEBHOOK] Order #${rows[0].id} already processed (${result.reason})`);
+      console.log(`[YOCO WEBHOOK] Order #${orderRow.id} already processed (${result.reason})`);
     }
   } catch (err) {
-    console.error('[STITCH WEBHOOK] Processing error:', err);
+    console.error('[YOCO WEBHOOK] Processing error:', err);
   }
 });
 
