@@ -99,17 +99,22 @@ export default function PaymentReturn() {
             The seller has your contact details and will be in touch to arrange a collection time.
           </p>
         ) : (
-          <p className="text-sm text-gray-500 mb-6">
-            The Courier Guy will handle delivery. The seller will be notified.
-          </p>
+          <>
+            <p className="text-sm text-gray-500 mb-2">
+              The Courier Guy will collect from the seller and deliver to you.
+            </p>
+            <p className="text-xs text-gray-400 mb-6">
+              You'll receive a confirmation email with a live tracking link.
+            </p>
+          </>
         )}
 
         <div className="space-y-3">
           <Link to={`/orders/${orderId}`} className="btn-primary w-full block text-center">
-            View Order Details
+            {isCollect ? 'View order details' : 'Track my order'}
           </Link>
           <Link to="/browse" className="btn-outline w-full block text-center">
-            Continue Shopping
+            Continue shopping
           </Link>
         </div>
       </div>

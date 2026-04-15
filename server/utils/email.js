@@ -80,9 +80,16 @@ async function sendSellerNotification({ sellerEmail, sellerName, buyerName, list
   });
 }
 
-async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl }) {
-  const orderUrl = `${clientUrl}/orders/${orderId}`;
+async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, trackingReference, trackingToken }) {
   const isCollect = deliveryMethod === 'collect';
+  // Prefer the public tracking URL if we have a token — works even if
+  // the buyer opens the email on a device where they're not logged in.
+  // Falls back to the authenticated order page for collection orders
+  // (no courier to track) or when the token is missing.
+  const trackUrl = !isCollect && trackingToken
+    ? `${clientUrl}/track/${orderId}?t=${trackingToken}`
+    : `${clientUrl}/orders/${orderId}`;
+  const ctaLabel = isCollect ? 'View order details' : 'Track my order';
 
   const html = emailWrapper(`
     <h2 style="color: #2D6A4F; font-size: 20px; margin: 0 0 16px;">Payment confirmed!</h2>
@@ -90,17 +97,25 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
     <p style="color: #555; line-height: 1.6; margin: 0 0 20px;">
       Your payment of <strong>${formatCents(totalPrice)}</strong> for <strong>"${listingTitle}"</strong> has been confirmed.
     </p>
-    <div style="background: ${isCollect ? '#eff6ff' : '#fefce8'}; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
-      <p style="margin: 0; color: ${isCollect ? '#1e40af' : '#854d0e'}; font-size: 14px;">
+    <div style="background: ${isCollect ? '#eff6ff' : '#f0fdf4'}; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <p style="margin: 0; color: ${isCollect ? '#1e40af' : '#166534'}; font-size: 14px;">
         ${isCollect
           ? `<strong>Next step:</strong> ${sellerName} has been notified and will be in touch to arrange collection.`
-          : '<strong>Next step:</strong> The Courier Guy will collect from the seller and deliver to you.'
+          : `<strong>Next step:</strong> The Courier Guy will collect from the seller and deliver to you.${trackingReference ? ` Your tracking number is <strong>${trackingReference}</strong>.` : ''}`
         }
       </p>
     </div>
+    ${!isCollect ? `
+    <p style="color: #666; font-size: 13px; line-height: 1.6; margin: 0 0 20px;">
+      We'll email you when your parcel is shipped and again when it arrives. You can also check the live status any time using the button below.
+    </p>` : ''}
     <div style="text-align: center; margin: 24px 0 8px;">
-      <a href="${orderUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">View Order Details</a>
+      <a href="${trackUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">${ctaLabel}</a>
     </div>
+    ${!isCollect ? `
+    <p style="color: #999; font-size: 11px; text-align: center; margin: 12px 0 0;">
+      Tracking powered by The Courier Guy
+    </p>` : ''}
   `);
 
   await sendBrevoEmail({

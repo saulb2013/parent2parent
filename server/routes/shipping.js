@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 const { parcelForShiplogic } = require('../utils/parcelSizes');
+const { verifyOrderToken } = require('../utils/orderTokens');
 
 const router = express.Router();
 
@@ -243,6 +244,74 @@ router.get('/track/:orderId', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Track shipment error:', err);
     res.status(500).json({ error: err.message || 'Failed to track shipment' });
+  }
+});
+
+// Public tracking — no auth required, but caller must present a signed
+// token that proves they know this order id (anti-enumeration). The
+// token ships in the buyer confirmation email's "Track my order" link.
+// Returns only shipment-relevant fields; never buyer PII or price info.
+router.get('/public-track/:orderId', async (req, res) => {
+  try {
+    const { token } = req.query;
+    const orderId = req.params.orderId;
+
+    if (!verifyOrderToken(orderId, token)) {
+      return res.status(401).json({ error: 'Invalid or missing tracking token' });
+    }
+
+    const pool = req.app.get('db');
+    const { rows: orders } = await pool.query(
+      `SELECT o.id, o.status, o.delivery_method, o.delivery_city, o.delivery_province,
+              o.tracking_reference, l.title as listing_title
+         FROM orders o
+         JOIN listings l ON o.listing_id = l.id
+        WHERE o.id = $1`,
+      [orderId]
+    );
+
+    if (!orders.length) return res.status(404).json({ error: 'Order not found' });
+    const order = orders[0];
+
+    if (!order.tracking_reference) {
+      return res.json({
+        listingTitle: order.listing_title,
+        deliveryMethod: order.delivery_method,
+        deliveryCity: order.delivery_city,
+        deliveryProvince: order.delivery_province,
+        orderStatus: order.status,
+        trackingReference: null,
+        status: null,
+        events: [],
+        estimatedDelivery: null,
+      });
+    }
+
+    // Live fetch from TCG. If this fails we still return the order
+    // shape without tracking events so the page can render a useful
+    // fallback state instead of 500'ing.
+    let shipment = {};
+    try {
+      const data = await tcgFetch(`/tracking/shipments?tracking_reference=${order.tracking_reference}`);
+      shipment = data.shipments?.[0] || data || {};
+    } catch (err) {
+      console.warn('[PUBLIC-TRACK] TCG fetch failed:', err.message);
+    }
+
+    res.json({
+      listingTitle: order.listing_title,
+      deliveryMethod: order.delivery_method,
+      deliveryCity: order.delivery_city,
+      deliveryProvince: order.delivery_province,
+      orderStatus: order.status,
+      trackingReference: order.tracking_reference,
+      status: shipment.status || null,
+      events: shipment.tracking_events || [],
+      estimatedDelivery: shipment.delivery_date_to || null,
+    });
+  } catch (err) {
+    console.error('Public track error:', err);
+    res.status(500).json({ error: 'Failed to fetch tracking' });
   }
 });
 

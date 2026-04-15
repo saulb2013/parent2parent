@@ -93,6 +93,67 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
+        {/* Tracking panel — promoted above the receipt so buyers see
+            the live courier status first. Only renders for delivery
+            orders (collection is handled in the section below). */}
+        {isDelivery && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
+              Tracking by The Courier Guy
+            </p>
+            {order.tracking_reference ? (
+              <>
+                <div className="flex items-start justify-between mb-4 pb-4 border-b border-blue-200">
+                  <div>
+                    <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Tracking number</p>
+                    <p className="text-base font-bold text-blue-900 tabular">{order.tracking_reference}</p>
+                  </div>
+                  {tracking?.status && (
+                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-blue-600 text-white capitalize">
+                      {tracking.status.replace(/-/g, ' ')}
+                    </span>
+                  )}
+                </div>
+
+                {tracking?.estimatedDelivery && (
+                  <div className="mb-4">
+                    <p className="text-xs text-blue-700 mb-0.5">Estimated delivery</p>
+                    <p className="text-sm font-medium text-blue-900">
+                      {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                )}
+
+                {tracking?.events?.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-medium text-blue-700 mb-2">Tracking history</p>
+                    <div className="space-y-2">
+                      {tracking.events.slice(0, 5).map((event, i) => (
+                        <div key={i} className="text-xs text-blue-800 flex gap-2">
+                          <span className="text-blue-500 shrink-0 w-16">
+                            {new Date(event.timestamp || event.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                          </span>
+                          <span>{event.description || event.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-blue-700">No scan events yet — check back after collection.</p>
+                )}
+
+                <p className="mt-4 pt-4 border-t border-blue-200 text-center text-xs text-blue-600">
+                  Live tracking provided by The Courier Guy.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-blue-800">
+                Shipment is being booked. Tracking details will appear here shortly.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Delivery / Collection Info */}
         <div className="mb-6">
           {isCollect ? (
@@ -124,19 +185,6 @@ export default function OrderConfirmation() {
               <p className="text-gray-600">{order.delivery_address}</p>
               {order.delivery_city && (
                 <p className="text-sm text-gray-500">{order.delivery_city}, {order.delivery_province} {order.delivery_postal_code}</p>
-              )}
-              {order.tracking_reference ? (
-                <div className="bg-blue-50 rounded-xl p-3 mt-3">
-                  <p className="text-xs text-blue-700">
-                    Shipment booked with The Courier Guy. Tracking: <strong>{order.tracking_reference}</strong>
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-amber-50 rounded-xl p-3 mt-3">
-                  <p className="text-xs text-amber-700">
-                    Delivery by The Courier Guy. Shipment will be booked shortly.
-                  </p>
-                </div>
               )}
             </>
           )}
@@ -195,61 +243,6 @@ export default function OrderConfirmation() {
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
             <p className="text-yellow-700 font-medium">Payment Pending</p>
             <p className="text-xs text-yellow-600 mt-1">Your payment is still being processed.</p>
-          </div>
-        )}
-
-        {/* Tracking Info */}
-        {order.tracking_reference && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-              </svg>
-              Courier Tracking
-            </h3>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">Tracking Number</span>
-                <span className="text-sm font-bold text-blue-800">{order.tracking_reference}</span>
-              </div>
-
-              {tracking?.status && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-blue-700">Status</span>
-                  <span className="text-sm font-medium text-blue-800 capitalize">{tracking.status.replace(/-/g, ' ')}</span>
-                </div>
-              )}
-
-              {tracking?.estimatedDelivery && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-blue-700">Estimated Delivery</span>
-                  <span className="text-sm font-medium text-blue-800">
-                    {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {tracking?.events?.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-blue-200">
-                <p className="text-xs font-medium text-blue-700 mb-2">Tracking History</p>
-                <div className="space-y-2">
-                  {tracking.events.slice(0, 5).map((event, i) => (
-                    <div key={i} className="text-xs text-blue-600 flex gap-2">
-                      <span className="text-blue-400 shrink-0">
-                        {new Date(event.timestamp || event.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
-                      </span>
-                      <span>{event.description || event.status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="mt-3 text-xs text-blue-500 text-center">
-              Tracking updates are fetched live from The Courier Guy.
-            </p>
           </div>
         )}
 
