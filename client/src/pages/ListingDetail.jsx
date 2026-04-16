@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import ListingCard from '../components/ListingCard';
 import { AGE_STAGE_LABELS } from '../constants/ageStages';
+import { tcgTrackingUrl } from '../utils/tracking';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -14,6 +15,8 @@ export default function ListingDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [saleOrder, setSaleOrder] = useState(null);
+  const [saleTracking, setSaleTracking] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -27,6 +30,25 @@ export default function ListingDetail() {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  // When a seller views their own sold listing, fetch the associated order + tracking
+  useEffect(() => {
+    if (!listing || !user || user.id !== listing.seller_id || listing.status !== 'sold') return;
+    fetch(`/api/orders/by-listing/${id}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.order) return;
+        setSaleOrder(data.order);
+        // Also fetch live tracking if it's a delivery order with a tracking ref
+        if (data.order.delivery_method === 'delivery' && data.order.tracking_reference) {
+          fetch(`/api/shipping/track/${data.order.id}`, { credentials: 'include' })
+            .then(r => r.ok ? r.json() : null)
+            .then(t => { if (t) setSaleTracking(t); })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [listing, user, id]);
 
   const toggleSave = async () => {
     if (!user) return;
@@ -209,7 +231,14 @@ export default function ListingDetail() {
             </>
           )}
 
-          {isOwnListing && (
+          {isOwnListing && listing.status === 'sold' && saleOrder && (
+            <>
+              <hr className="my-6 border-border" />
+              <SoldOrderPanel order={saleOrder} tracking={saleTracking} />
+            </>
+          )}
+
+          {isOwnListing && listing.status !== 'sold' && (
             <div className="flex gap-3 mt-6">
               <Link to={`/listings/${id}/edit`} className="btn-primary flex items-center justify-center gap-2 flex-1">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,8 +246,13 @@ export default function ListingDetail() {
                 </svg>
                 Edit Listing
               </Link>
-              <Link to={`/profile/${user.id}?view=seller`} className="btn-outline flex items-center justify-center gap-2 flex-1">
-                Back to My Listings
+            </div>
+          )}
+
+          {isOwnListing && (
+            <div className="mt-6">
+              <Link to={`/profile/${user.id}?view=seller`} className="text-sm text-primary hover:underline font-medium">
+                &larr; Back to My Listings
               </Link>
             </div>
           )}
@@ -236,6 +270,124 @@ export default function ListingDetail() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function sellerStatusLabel(status, deliveryMethod) {
+  const isDelivery = deliveryMethod === 'delivery';
+  if (status === 'delivered') return { label: 'Delivered', cls: 'bg-green-100 text-green-700' };
+  if (status === 'shipped') return { label: 'In transit', cls: 'bg-blue-100 text-blue-700' };
+  if (status === 'paid' && isDelivery) return { label: 'Courier booked', cls: 'bg-blue-100 text-blue-700' };
+  if (status === 'paid') return { label: 'Awaiting collection', cls: 'bg-amber-100 text-amber-700' };
+  return { label: status, cls: 'bg-gray-100 text-gray-600' };
+}
+
+function SoldOrderPanel({ order, tracking }) {
+  const isDelivery = order.delivery_method === 'delivery';
+  const isCollect = order.delivery_method === 'collect';
+  const { label: statusLabel, cls: statusCls } = sellerStatusLabel(order.status, order.delivery_method);
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold text-gray-800">Sale details</h3>
+
+      {/* Status + date */}
+      <div className="flex items-center gap-3">
+        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusCls}`}>{statusLabel}</span>
+        <span className="text-sm text-gray-500">
+          Sold {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+
+      {/* Buyer */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Buyer</p>
+        <p className="font-medium text-gray-900">{order.buyer_name}</p>
+        {order.buyer_email && <p className="text-gray-500">{order.buyer_email}</p>}
+        {order.buyer_phone && <p className="text-gray-500">{order.buyer_phone}</p>}
+      </div>
+
+      {/* Delivery / Collection */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          {isDelivery ? 'Delivery' : 'Collection'}
+        </p>
+
+        {isDelivery && (
+          <>
+            {order.delivery_city && (
+              <p className="text-gray-600">
+                To {order.delivery_address ? `${order.delivery_address}, ` : ''}{order.delivery_city}, {order.delivery_province}
+              </p>
+            )}
+
+            {order.tcg_waybill ? (
+              <div className="space-y-2">
+                <p className="text-gray-600">
+                  Waybill: <span className="font-semibold text-gray-900 tabular">{order.tcg_waybill}</span>
+                </p>
+                {tracking?.estimatedDelivery && (
+                  <p className="text-gray-600">
+                    Estimated delivery:{' '}
+                    <span className="font-medium text-gray-800">
+                      {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
+                  </p>
+                )}
+                {tracking?.status && (
+                  <p className="text-gray-600">
+                    Courier status: <span className="font-medium text-gray-800 capitalize">{tracking.status.replace(/-/g, ' ')}</span>
+                  </p>
+                )}
+                <a
+                  href={tcgTrackingUrl(order.tcg_waybill)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-block text-center text-sm !py-2 !px-5 mt-1"
+                >
+                  Track on The Courier Guy
+                </a>
+              </div>
+            ) : order.tracking_reference ? (
+              <p className="text-gray-500">
+                Courier booked — waybill number will be available shortly.
+              </p>
+            ) : (
+              <p className="text-gray-500">
+                Shipment is being booked with The Courier Guy.
+              </p>
+            )}
+          </>
+        )}
+
+        {isCollect && (
+          <p className="text-gray-600">
+            The buyer will contact you to arrange collection.
+            {order.buyer_phone && (
+              <> You can also reach them at <span className="font-medium">{order.buyer_phone}</span>.</>
+            )}
+          </p>
+        )}
+      </div>
+
+      {/* Price breakdown */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Payment</p>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Item price</span>
+          <span>{formatPrice(order.item_price)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Platform fee</span>
+          <span className="text-red-600">-{formatPrice(order.platform_fee)}</span>
+        </div>
+        <hr className="border-gray-100" />
+        <div className="flex justify-between font-semibold">
+          <span>Your payout</span>
+          <span className="text-primary">{formatPrice(order.item_price - order.platform_fee)}</span>
+        </div>
+      </div>
     </div>
   );
 }

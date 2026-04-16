@@ -3,6 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
 import { formatPrice } from '../utils/formatPrice';
+import { tcgTrackingUrl } from '../utils/tracking';
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -38,6 +39,9 @@ export default function Profile() {
   const [buyerTab, setBuyerTab] = useState('purchases');
   const [buyerLoading, setBuyerLoading] = useState(false);
 
+  // Seller orders (for sold tab)
+  const [sellerOrders, setSellerOrders] = useState([]);
+
   const isOwn = currentUser?.id === parseInt(id);
 
   const fetchProfile = () => {
@@ -72,7 +76,15 @@ export default function Profile() {
     else if (viewParam === 'seller') setMode('seller');
   }, [viewParam]);
 
-  useEffect(() => { fetchProfile(); }, [id]);
+  const fetchSellerOrders = () => {
+    if (!isOwn) return;
+    fetch('/api/orders/sales', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => setSellerOrders(data.orders || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => { fetchProfile(); if (isOwn) fetchSellerOrders(); }, [id]);
 
   useEffect(() => {
     if (mode === 'buyer' && isOwn) {
@@ -648,7 +660,90 @@ export default function Profile() {
 
           {/* Listings */}
           <div className="mt-6">
-            {filtered.length === 0 ? (
+            {tab === 'sold' && isOwn ? (
+              /* ===== SOLD TAB — order-based cards ===== */
+              sellerOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No sales yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sellerOrders.map(order => {
+                    const isDelivery = order.delivery_method === 'delivery';
+                    const isCollect = order.delivery_method === 'collect';
+                    let statusLabel, statusClass;
+                    if (order.status === 'delivered') {
+                      statusLabel = 'Delivered'; statusClass = 'bg-green-100 text-green-700';
+                    } else if (order.status === 'shipped') {
+                      statusLabel = 'In transit'; statusClass = 'bg-blue-100 text-blue-700';
+                    } else if (order.status === 'paid' && isDelivery && order.tracking_reference) {
+                      statusLabel = 'Courier booked'; statusClass = 'bg-blue-100 text-blue-700';
+                    } else if (order.status === 'paid' && isCollect) {
+                      statusLabel = 'Awaiting collection'; statusClass = 'bg-amber-100 text-amber-700';
+                    } else if (order.status === 'paid') {
+                      statusLabel = 'Paid'; statusClass = 'bg-green-100 text-green-700';
+                    } else {
+                      statusLabel = order.status; statusClass = 'bg-gray-100 text-gray-600';
+                    }
+                    return (
+                      <Link
+                        key={order.id}
+                        to={`/orders/${order.id}`}
+                        className="card p-4 block hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-4">
+                          {order.listing_image ? (
+                            <img src={order.listing_image} alt="" className="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                              <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
+                            <p className="text-sm text-gray-500">
+                              Bought by {order.buyer_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-gray-900">{formatPrice(order.item_price)}</p>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Delivery / collection detail row */}
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                          <span className="font-medium text-gray-600">
+                            {isDelivery ? 'Delivery' : 'Collection'}
+                          </span>
+                          {isDelivery && order.delivery_city && (
+                            <span>To {order.delivery_city}, {order.delivery_province}</span>
+                          )}
+                          {isDelivery && order.tcg_waybill && (
+                            <span>Waybill: <span className="tabular font-medium text-gray-700">{order.tcg_waybill}</span></span>
+                          )}
+                          {isDelivery && order.tcg_waybill && (
+                            <span
+                              onClick={e => { e.preventDefault(); window.open(tcgTrackingUrl(order.tcg_waybill), '_blank'); }}
+                              className="text-primary font-semibold hover:underline cursor-pointer"
+                            >
+                              Track
+                            </span>
+                          )}
+                          {isCollect && (
+                            <span>Buyer to arrange pickup</span>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )
+            ) : filtered.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500">
                   {tab === 'hidden' ? 'No hidden listings' : `No ${tab} listings yet`}
@@ -733,14 +828,6 @@ export default function Profile() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                          </button>
-                        )}
-                        {listing.status === 'sold' && (
-                          <button
-                            onClick={() => updateStatus(listing.id, 'active')}
-                            className="text-xs py-1 px-3 rounded-full border border-border text-gray-500 hover:bg-gray-50 transition-colors"
-                          >
-                            Relist
                           </button>
                         )}
                       </div>

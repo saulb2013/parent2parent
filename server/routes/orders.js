@@ -79,6 +79,64 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Get the order associated with a listing (for the seller's sold-item detail view)
+router.get('/by-listing/:listingId', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    const { rows } = await pool.query(
+      `SELECT o.*, l.title as listing_title, l.description as listing_description,
+        (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
+        seller.name as seller_name, seller.phone as seller_phone,
+        buyer.name as buyer_name, buyer.email as buyer_email, buyer.phone as buyer_phone
+       FROM orders o
+       JOIN listings l ON o.listing_id = l.id
+       JOIN users seller ON o.seller_id = seller.id
+       JOIN users buyer ON o.buyer_id = buyer.id
+       WHERE o.listing_id = $1 AND o.seller_id = $2 AND o.status != 'pending'
+       ORDER BY o.created_at DESC
+       LIMIT 1`,
+      [req.params.listingId, req.user.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: 'No order found for this listing' });
+    }
+
+    res.json({ order: rows[0] });
+  } catch (err) {
+    console.error('Get order by listing error:', err);
+    res.status(500).json({ error: 'Failed to get order' });
+  }
+});
+
+// Get user's orders (as seller) — used on the Sold tab of the seller profile
+router.get('/sales', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    const { rows } = await pool.query(
+      `SELECT o.id, o.listing_id, o.status, o.delivery_method,
+              o.tracking_reference, o.tcg_waybill, o.shipment_id,
+              o.delivery_city, o.delivery_province,
+              o.created_at, o.updated_at,
+              o.item_price, o.platform_fee, o.courier_fee, o.total_price,
+              l.title as listing_title,
+              (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
+              buyer.name as buyer_name, buyer.email as buyer_email, buyer.phone as buyer_phone
+       FROM orders o
+       JOIN listings l ON o.listing_id = l.id
+       JOIN users buyer ON o.buyer_id = buyer.id
+       WHERE o.seller_id = $1 AND o.status != 'pending'
+       ORDER BY o.created_at DESC`,
+      [req.user.id]
+    );
+
+    res.json({ orders: rows });
+  } catch (err) {
+    console.error('Get sales error:', err);
+    res.status(500).json({ error: 'Failed to get sales' });
+  }
+});
+
 // Get order by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
