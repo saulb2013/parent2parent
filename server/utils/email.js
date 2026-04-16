@@ -80,17 +80,8 @@ async function sendSellerNotification({ sellerEmail, sellerName, buyerName, list
   });
 }
 
-async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, tcgWaybill, trackingToken }) {
+async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listingTitle, orderId, totalPrice, deliveryMethod, clientUrl, tcgWaybill }) {
   const isCollect = deliveryMethod === 'collect';
-  // Destination priority for the CTA:
-  //   1. TCG's public tracking page — richest UX (map, ETA, proof
-  //      of delivery). Requires the TCG waybill ("TCG1234567890"),
-  //      NOT Shiplogic's short tracking reference. The waybill isn't
-  //      always available at email-send time.
-  //   2. Our public tracking page — works logged-out via signed
-  //      token. Used before the waybill lands or as a fallback.
-  //   3. The authenticated order page — for collection orders
-  //      (no courier to track).
   let trackUrl;
   let ctaLabel;
   if (isCollect) {
@@ -98,10 +89,7 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
     ctaLabel = 'View order details';
   } else if (tcgWaybill) {
     trackUrl = `https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(tcgWaybill)}`;
-    ctaLabel = 'Track Order';
-  } else if (trackingToken) {
-    trackUrl = `${clientUrl}/track/${orderId}?t=${trackingToken}`;
-    ctaLabel = 'Track my order';
+    ctaLabel = 'Track on The Courier Guy';
   } else {
     trackUrl = `${clientUrl}/orders/${orderId}`;
     ctaLabel = 'View order details';

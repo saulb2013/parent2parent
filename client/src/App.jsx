@@ -21,7 +21,6 @@ import ResetPassword from './pages/ResetPassword';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import PaymentReturn from './pages/PaymentReturn';
-import PublicTrack from './pages/PublicTrack';
 
 export default function App() {
   return (
@@ -45,7 +44,6 @@ export default function App() {
               <Route path="/checkout/:id" element={<Checkout />} />
               <Route path="/orders/:id" element={<OrderConfirmation />} />
               <Route path="/payment/return" element={<PaymentReturn />} />
-              <Route path="/track/:id" element={<PublicTrack />} />
               <Route path="/about" element={<About />} />
               <Route path="/safety-tips" element={<SafetyTips />} />
               <Route path="/faqs" element={<FAQs />} />

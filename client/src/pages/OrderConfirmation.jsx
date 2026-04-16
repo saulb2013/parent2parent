@@ -4,6 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
 import { tcgTrackingUrl } from '../utils/tracking';
 
+// Map TCG's internal statuses to labels a buyer understands
+function buyerStatusLabel(status) {
+  const s = (status || '').toLowerCase().replace(/-/g, ' ');
+  if (s.includes('delivered'))       return 'Delivered';
+  if (s.includes('out for delivery'))return 'Out for delivery';
+  if (s.includes('in transit'))      return 'On its way';
+  if (s.includes('collection assigned') || s.includes('collected'))
+    return 'Picked up from seller';
+  if (s.includes('failed'))          return 'Delivery attempt failed';
+  return s.charAt(0).toUpperCase() + s.slice(1); // fallback: title-case
+}
+
 export default function OrderConfirmation() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -94,70 +106,57 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
-        {/* Tracking panel — promoted above the receipt so buyers see
-            the live courier status first. Only renders for delivery
-            orders (collection is handled in the section below). */}
+        {/* Tracking panel — delivery orders only */}
         {isDelivery && (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
-              Tracking by The Courier Guy
-            </p>
-            {order.tracking_reference ? (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  {tracking?.status ? (
-                    <span className="inline-flex items-center text-sm font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white capitalize">
-                      {tracking.status.replace(/-/g, ' ')}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-blue-700">Shipment booked</span>
-                  )}
-                  {tracking?.estimatedDelivery && (
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wider text-blue-600">Estimated arrival</p>
-                      <p className="text-sm font-semibold text-blue-900">
-                        {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                  )}
-                </div>
+          <div className="border border-gray-200 rounded-xl p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Delivery tracking
+              </p>
+              {tracking?.status && (
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 capitalize">
+                  {buyerStatusLabel(tracking.status)}
+                </span>
+              )}
+            </div>
 
-                {order.tcg_waybill ? (
-                  <a
-                    href={tcgTrackingUrl(order.tcg_waybill)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
-                  >
-                    Track Order
-                  </a>
-                ) : (
-                  <p className="text-center text-sm text-blue-700 py-2">
-                    Waybill number is on its way — usually available within an hour of booking.
+            {order.tcg_waybill ? (
+              <>
+                <p className="text-sm text-gray-600 mb-1">Waybill number</p>
+                <p className="text-lg font-semibold text-gray-900 mb-4 tabular">{order.tcg_waybill}</p>
+
+                {tracking?.estimatedDelivery && (
+                  <p className="text-sm text-gray-500 mb-4">
+                    Estimated arrival:{' '}
+                    <span className="font-medium text-gray-800">
+                      {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
                   </p>
                 )}
 
-                {order.tracking_token && (
-                  <a
-                    href={`/track/${order.id}?t=${order.tracking_token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-center text-xs text-blue-700 hover:text-blue-900 mt-2"
-                  >
-                    Or share a link without login →
-                  </a>
-                )}
-
-                <p className="mt-4 pt-4 border-t border-blue-200 text-center text-[11px] text-blue-500">
-                  {order.tcg_waybill ? (
-                    <>Waybill <span className="tabular">{order.tcg_waybill}</span></>
-                  ) : (
-                    <>Reference <span className="tabular">{order.tracking_reference}</span></>
-                  )}{' '}· Live tracking by The Courier Guy.
-                </p>
+                <a
+                  href={tcgTrackingUrl(order.tcg_waybill)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary block w-full text-center"
+                >
+                  Track on The Courier Guy
+                </a>
               </>
+            ) : order.tracking_reference ? (
+              <div className="text-sm text-gray-600">
+                <p className="mb-3">
+                  Your waybill number is being generated by The Courier Guy — it's usually ready within an hour of booking.
+                </p>
+                <p>
+                  Once it arrives, The Courier Guy will email it to you. You can then track your parcel at{' '}
+                  <a href="https://www.thecourierguy.co.za/track" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+                    thecourierguy.co.za/track
+                  </a>
+                </p>
+              </div>
             ) : (
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-gray-600">
                 Shipment is being booked. Tracking details will appear here shortly.
               </p>
             )}

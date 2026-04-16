@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const { authenticateToken } = require('../middleware/auth');
 const { sendSellerNotification, sendBuyerConfirmation, sendAdminAlert } = require('../utils/email');
 const { parcelForShiplogic } = require('../utils/parcelSizes');
-const { signOrderToken } = require('../utils/orderTokens');
 
 const router = express.Router();
 
@@ -229,7 +228,6 @@ async function handleOrderPaid(pool, orderId) {
         deliveryMethod: eo.delivery_method,
         clientUrl,
         tcgWaybill: eo.tcg_waybill || null,
-        trackingToken: signOrderToken(eo.id),
       }).then(() => console.log(`[EMAIL] Buyer confirmed for order #${eo.id}`))
         .catch(err => console.error('[EMAIL] Buyer confirmation failed:', err.message));
     }
