@@ -5,6 +5,51 @@ const router = express.Router();
 
 const PLATFORM_FEE_PERCENT = 5;
 
+// TEMP: Seed a test sold order for listing 26 (Cot). Remove after use.
+router.post('/seed-sold', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    const sellerId = req.user.id;
+    const listingId = 26;
+
+    // Verify the listing belongs to this user
+    const { rows: listings } = await pool.query(
+      'SELECT * FROM listings WHERE id = $1 AND seller_id = $2',
+      [listingId, sellerId]
+    );
+    if (!listings.length) return res.status(404).json({ error: 'Listing not found or not yours' });
+
+    const listing = listings[0];
+
+    // Check if order already exists
+    const { rows: existing } = await pool.query(
+      "SELECT id FROM orders WHERE listing_id = $1 AND status != 'pending'", [listingId]
+    );
+    if (existing.length) return res.json({ message: 'Order already exists', orderId: existing[0].id });
+
+    const itemPrice = listing.price;
+    const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
+    const totalPrice = itemPrice + platformFee;
+
+    // Create a test order with the seller as buyer (just for seeding)
+    const { rows } = await pool.query(
+      `INSERT INTO orders (buyer_id, listing_id, seller_id, item_price, platform_fee, total_price,
+        delivery_method, delivery_city, delivery_province, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'delivery', 'Cape Town', 'Western Cape', 'paid')
+       RETURNING id`,
+      [sellerId, listingId, sellerId, itemPrice, platformFee, totalPrice]
+    );
+
+    // Mark listing as sold
+    await pool.query("UPDATE listings SET status = 'sold' WHERE id = $1", [listingId]);
+
+    res.json({ message: 'Seeded sold order', orderId: rows[0].id });
+  } catch (err) {
+    console.error('Seed sold error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create order (checkout)
 router.post('/', authenticateToken, async (req, res) => {
   try {
