@@ -54,6 +54,30 @@ async function runMigrations() {
         [email, street, postal]
       );
     }
+    // TEMP: Seed listing 27 (Cot) as sold with a test order. Remove after verifying.
+    const seedListingId = 27;
+    const { rows: seedCheck } = await pool.query(
+      "SELECT id FROM orders WHERE listing_id = $1 AND status != 'pending'", [seedListingId]
+    );
+    if (!seedCheck.length) {
+      const { rows: seedListing } = await pool.query('SELECT * FROM listings WHERE id = $1', [seedListingId]);
+      if (seedListing.length) {
+        const sl = seedListing[0];
+        const fee = Math.round(sl.price * 5 / 100);
+        const { rows: newOrder } = await pool.query(
+          `INSERT INTO orders (buyer_id, listing_id, seller_id, item_price, platform_fee, total_price,
+            delivery_method, delivery_city, delivery_province, status)
+           VALUES ($1, $2, $3, $4, $5, $6, 'delivery', 'Cape Town', 'Western Cape', 'paid')
+           RETURNING id`,
+          [sl.seller_id, seedListingId, sl.seller_id, sl.price, fee, sl.price + fee]
+        );
+        await pool.query("UPDATE listings SET status = 'sold' WHERE id = $1", [seedListingId]);
+        console.log(`[SEED] Created test sold order #${newOrder[0].id} for listing ${seedListingId}`);
+      }
+    } else {
+      console.log(`[SEED] Listing ${seedListingId} already has order #${seedCheck[0].id}`);
+    }
+
   } catch (err) {
     console.error('[DB MIGRATION] Failed:', err.message);
   }
