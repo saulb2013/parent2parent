@@ -52,7 +52,7 @@ app.use((err, req, res, next) => {
 // Idempotent: skips if already done. Remove after verifying UI.
 (async () => {
   try {
-    const listingId = 26;
+    const listingId = 27;
     const { rows: existing } = await pool.query(
       "SELECT id FROM orders WHERE listing_id = $1 AND status != 'pending'", [listingId]
     );
