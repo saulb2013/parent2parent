@@ -84,7 +84,7 @@ async function handleOrderPaid(pool, orderId) {
         `SELECT o.*, seller.name as seller_name, seller.phone as seller_phone,
           seller.email as seller_email, seller.city as seller_city, seller.province as seller_province, seller.street_address as seller_street_address, seller.postal_code as seller_postal_code,
           buyer.name as buyer_name, buyer.phone as buyer_phone_profile, buyer.email as buyer_email,
-          l.title as listing_title, l.parcel_size as listing_parcel_size
+          l.title as listing_title
          FROM orders o
          JOIN users seller ON o.seller_id = seller.id
          JOIN users buyer ON o.buyer_id = buyer.id
@@ -129,7 +129,7 @@ async function handleOrderPaid(pool, orderId) {
               mobile_number: o.buyer_phone || o.buyer_phone_profile || '',
               email: o.buyer_email || '',
             },
-            parcels: [parcelForShiplogic(o.listing_parcel_size)],
+            parcels: [parcelForShiplogic(o.parcel_size)],
             special_instructions_collection: `Parent2Parent Order #${o.id} - ${o.listing_title}`,
             special_instructions_delivery: o.buyer_notes || '',
             declared_value: o.item_price / 100,

@@ -54,6 +54,11 @@ async function runMigrations() {
         [email, street, postal]
       );
     }
+    // 2026-04-17: buyer-chosen parcel size on orders
+    await pool.query(
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS parcel_size TEXT DEFAULT 'medium'`
+    );
+
     // 2026-04-17: Backfill phone + address for app-registered test users.
     // Only updates rows where the field is currently null/empty.
     const testUserBackfill = [

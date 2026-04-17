@@ -158,14 +158,7 @@ router.post('/shipment', authenticateToken, async (req, res) => {
         mobile_number: buyerPhone,
         email: order.buyer_email || '',
       },
-      parcels: [
-        {
-          submitted_length_cm: 30,
-          submitted_width_cm: 30,
-          submitted_height_cm: 20,
-          submitted_weight_kg: 5,
-        },
-      ],
+      parcels: [parcelForShiplogic(order.parcel_size)],
       special_instructions_collection: `Parent2Parent Order #${order.id} - ${order.listing_title}`,
       special_instructions_delivery: order.buyer_notes || '',
       declared_value: order.item_price / 100, // Convert cents to rands

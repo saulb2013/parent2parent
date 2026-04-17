@@ -5,6 +5,13 @@ import { formatPrice } from '../utils/formatPrice';
 
 const PLATFORM_FEE_PERCENT = 5;
 
+const PARCEL_SIZES = [
+  { key: 'small',     label: 'Small box',     desc: 'Toys, shoes, bottles',          maxKg: '2 kg' },
+  { key: 'medium',    label: 'Medium box',    desc: 'Car seats, disassembled chairs', maxKg: '5 kg' },
+  { key: 'large',     label: 'Large box',     desc: 'Prams (folded), play mats',     maxKg: '10 kg' },
+  { key: 'oversized', label: 'Oversized',     desc: 'Cots, changing tables',          maxKg: '20 kg' },
+];
+
 export default function Checkout() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +26,7 @@ export default function Checkout() {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState(null); // 'collect' or 'delivery'
 
+  const [parcelSize, setParcelSize] = useState(null); // set once listing loads
   const [shippingRates, setShippingRates] = useState([]);
   const [selectedRate, setSelectedRate] = useState(null);
   const [ratesLoading, setRatesLoading] = useState(false);
@@ -55,6 +63,7 @@ export default function Checkout() {
             setError('This listing is no longer available');
           }
           setListing(data.listing);
+          setParcelSize(data.listing.parcel_size || 'medium');
         }
       })
       .catch(() => setError('Failed to load listing'))
@@ -136,7 +145,7 @@ export default function Checkout() {
 
   // Fetch shipping rates when delivery address is complete
   useEffect(() => {
-    if (deliveryMethod !== 'delivery' || !form.deliveryCity || !listing) return;
+    if (deliveryMethod !== 'delivery' || !form.deliveryCity || !listing || !parcelSize) return;
 
     setRatesLoading(true);
     setRatesError('');
@@ -156,7 +165,7 @@ export default function Checkout() {
         deliveryCity: form.deliveryCity,
         deliveryPostalCode: form.deliveryPostalCode,
         deliveryProvince: form.deliveryProvince,
-        parcelSize: listing.parcel_size,
+        parcelSize,
       }),
     })
       .then(r => r.json())
@@ -172,7 +181,7 @@ export default function Checkout() {
       })
       .catch(() => setRatesError('Could not fetch delivery quotes'))
       .finally(() => setRatesLoading(false));
-  }, [deliveryMethod, form.deliveryCity, form.deliveryPostalCode, listing]);
+  }, [deliveryMethod, form.deliveryCity, form.deliveryPostalCode, listing, parcelSize]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -207,6 +216,7 @@ export default function Checkout() {
         submitData.deliveryPostalCode = form.deliveryPostalCode;
         submitData.courierFee = courierFee;
         submitData.serviceLevelCode = selectedRate?.code || 'ECO';
+        submitData.parcelSize = parcelSize;
       } else {
         // Collection — use seller's location as address
         submitData.deliveryAddress = `Collect from ${listing.city}, ${listing.province}`;
@@ -420,6 +430,40 @@ export default function Checkout() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Parcel Size — buyer confirms/changes the seller's recommendation */}
+            {deliveryMethod === 'delivery' && (
+              <div className="card p-6">
+                <h2 className="font-display text-xl font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  Parcel Size
+                </h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  The seller suggests <strong>{PARCEL_SIZES.find(p => p.key === listing.parcel_size)?.label || 'Medium box'}</strong>.
+                  Please confirm or change — the courier fee depends on this and an incorrect size may result in a surcharge.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {PARCEL_SIZES.map(p => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setParcelSize(p.key)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        parcelSize === p.key
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:border-gray-300'
+                      }`}
+                    >
+                      <p className="font-medium text-sm text-gray-900">{p.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
+                      <p className="text-xs text-gray-400 mt-1">Max {p.maxKg}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
