@@ -54,6 +54,30 @@ async function runMigrations() {
         [email, street, postal]
       );
     }
+    // 2026-04-17: Backfill phone + address for app-registered test users.
+    // Only updates rows where the field is currently null/empty.
+    const testUserBackfill = [
+      ['Saul Bloch',    '+27820000001'],
+      ['Chana van Zyl', '+27820000002'],
+      ['Arlene Bloch',  '+27820000003'],
+      ['Dean Cohen',    '+27820000004'],
+    ];
+    for (const [name, phone] of testUserBackfill) {
+      await pool.query(
+        `UPDATE users SET phone = COALESCE(NULLIF(phone, ''), $2) WHERE name = $1`,
+        [name, phone]
+      );
+    }
+    // Taariq: has phone but no address
+    await pool.query(
+      `UPDATE users
+         SET street_address = COALESCE(NULLIF(street_address, ''), '22 Buitenkant Street, Cape Town'),
+             postal_code = COALESCE(NULLIF(postal_code, ''), '8001'),
+             city = COALESCE(NULLIF(city, ''), 'Cape Town'),
+             province = COALESCE(NULLIF(province, ''), 'Western Cape')
+       WHERE name = 'Taariq Tayob'`
+    );
+
   } catch (err) {
     console.error('[DB MIGRATION] Failed:', err.message);
   }
