@@ -69,7 +69,7 @@ router.post('/login', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({ user: { ...payload, avatar_url: user.avatar_url } });
+    res.json({ user: { ...payload, avatar_url: user.avatar_url, province: user.province, city: user.city, phone: user.phone, street_address: user.street_address, postal_code: user.postal_code } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });

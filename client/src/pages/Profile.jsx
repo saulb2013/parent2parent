@@ -14,7 +14,7 @@ const provinces = [
 
 export default function Profile() {
   const { id } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [listings, setListings] = useState([]);
   const [stats, setStats] = useState({ active_count: 0, sold_count: 0, hidden_count: 0, total_count: 0 });
@@ -262,6 +262,7 @@ export default function Profile() {
       });
       setEditing(false);
       fetchProfile();
+      refreshUser();
     } finally {
       setSaving(false);
     }
