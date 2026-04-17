@@ -46,6 +46,19 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
 
   const { name, province, city, phone, bio, street_address, postal_code } = req.body;
   const avatar_url = req.file ? req.file.path : null;
+
+  // Prevent blanking out required fields
+  const missing = [];
+  if (name !== undefined && !name?.trim()) missing.push('name');
+  if (phone !== undefined && !phone?.trim()) missing.push('phone');
+  if (street_address !== undefined && !street_address?.trim()) missing.push('address');
+  if (city !== undefined && !city?.trim()) missing.push('city');
+  if (province !== undefined && !province?.trim()) missing.push('province');
+  if (postal_code !== undefined && !postal_code?.trim()) missing.push('postal code');
+  if (missing.length) {
+    return res.status(400).json({ error: `Required fields cannot be empty: ${missing.join(', ')}` });
+  }
+
   try {
     await db.query(
       `UPDATE users SET name = COALESCE($1, name), province = COALESCE($2, province),
