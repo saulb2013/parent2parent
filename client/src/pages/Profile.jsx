@@ -102,6 +102,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (mode === 'buyer' && isOwn) {
+      setBuyerLoading(true);
       refreshTrackingStatuses().then(() => fetchBuyerData());
     }
   }, [mode, id]);
