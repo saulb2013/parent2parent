@@ -226,7 +226,11 @@ export default function OrderConfirmation() {
                   });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.error);
-                  setTimeout(() => window.location.replace(data.paymentUrl), 100);
+                  const form = document.createElement('form');
+                  form.method = 'GET';
+                  form.action = data.paymentUrl;
+                  document.body.appendChild(form);
+                  form.submit();
                 } catch (err) {
                   alert(err.message || 'Failed to initiate payment');
                 }

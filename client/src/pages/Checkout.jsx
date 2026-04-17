@@ -242,14 +242,16 @@ export default function Checkout() {
       const payData = await payRes.json();
       if (!payRes.ok) throw new Error(payData.error || 'Failed to initiate payment');
 
-      // Redirect to hosted Yoco payment page.
-      // Use replace() inside a timeout so the browser finishes React's
-      // current execution frame before navigating — without this, Yoco's
-      // hosted page can land blank and only render on manual refresh.
-      setTimeout(() => {
-        window.location.replace(payData.paymentUrl);
-      }, 100);
-      return; // skip finally — we're leaving the page
+      // Redirect to Yoco via a hidden form submission — Yoco's hosted
+      // checkout doesn't initialise on JS-only navigations (location.href
+      // / location.replace) but works on "real" browser navigations like
+      // form submits and manual refreshes.
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = payData.paymentUrl;
+      document.body.appendChild(form);
+      form.submit();
+      return; // skip catch — we're leaving the page
     } catch (err) {
       setError(err.message || 'Failed to process checkout');
       setSubmitting(false);
