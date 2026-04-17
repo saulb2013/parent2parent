@@ -271,9 +271,11 @@ router.post('/initiate', authenticateToken, async (req, res) => {
   }
 });
 
-// Server-side redirect to Yoco — the browser leaves the SPA cleanly
-// and follows a 302, which Yoco handles correctly (unlike JS-initiated
-// navigations from within React).
+// Server-side redirect to Yoco via an interstitial HTML page.
+// A 302 redirect was too fast — the browser followed it before Yoco's
+// checkout was fully provisioned, resulting in a blank page. Serving a
+// small HTML page with a meta-refresh gives Yoco a moment and ensures
+// the browser treats the navigation as a fresh page load.
 router.get('/redirect/:orderId', authenticateToken, async (req, res) => {
   try {
     const pool = req.app.get('db');
@@ -294,7 +296,16 @@ router.get('/redirect/:orderId', authenticateToken, async (req, res) => {
       [checkout.id, order.id]
     );
 
-    res.redirect(checkout.redirectUrl);
+    const url = checkout.redirectUrl;
+    res.send(`<!DOCTYPE html>
+<html><head>
+<meta http-equiv="refresh" content="1;url=${url}">
+<style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,sans-serif;background:#f8f8f6;color:#333}
+.w{text-align:center}.s{width:40px;height:40px;border:3px solid #e0e0d8;border-top-color:#4a6741;border-radius:50%;animation:r .8s linear infinite;margin:0 auto 16px}
+@keyframes r{to{transform:rotate(360deg)}}</style>
+</head><body><div class="w"><div class="s"></div><p>Redirecting to secure payment...</p></div>
+<script>setTimeout(function(){window.location.href="${url}"},1000)</script>
+</body></html>`);
   } catch (err) {
     console.error('[YOCO] Redirect error:', err);
     res.status(500).send('Failed to initiate payment');
