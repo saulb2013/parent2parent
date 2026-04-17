@@ -74,17 +74,16 @@ router.post('/rates', authenticateToken, async (req, res) => {
     });
 
     const rawRates = data.rates || data;
-    if (rawRates.length) {
-      console.log('[SHIPPING] Sample raw rate:', JSON.stringify(rawRates[0]));
-    }
 
-    // Return simplified rate options
+    // Return simplified rate options.
+    // Shiplogic nests delivery dates inside service_level, not at the top level.
     const rates = rawRates.map(rate => {
-      const dateFrom = rate.delivery_date_from || rate.min_delivery_date || rate.deliveryDateFrom || null;
-      const dateTo = rate.delivery_date_to || rate.max_delivery_date || rate.deliveryDateTo || null;
+      const sl = rate.service_level || {};
+      const dateFrom = sl.delivery_date_from || rate.delivery_date_from || null;
+      const dateTo = sl.delivery_date_to || rate.delivery_date_to || null;
       return {
-        service: (rate.service_level?.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
-        code: rate.service_level?.code || rate.service_code || '',
+        service: (sl.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
+        code: sl.code || rate.service_code || '',
         price: rate.rate || rate.charge || 0,
         estimatedDays: dateFrom
           ? Math.ceil((new Date(dateTo || dateFrom) - new Date()) / (1000 * 60 * 60 * 24))
