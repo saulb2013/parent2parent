@@ -435,6 +435,9 @@ export default function Checkout() {
                   </svg>
                   Delivery Options
                 </h2>
+                <p className="text-xs text-gray-500 -mt-2 mb-4">
+                  Courier cut-off times may push orders placed late in the day to the next business day.
+                </p>
 
                 {ratesLoading && (
                   <div className="flex items-center gap-3 py-6 justify-center text-gray-500">
@@ -476,8 +479,8 @@ export default function Checkout() {
                           {deliveryDate && (
                             <p className="text-sm text-gray-500 mt-1">
                               Estimated delivery: <span className="font-medium text-gray-700">{new Date(deliveryDate).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                              {rate.estimatedDays && (
-                                <span className="text-gray-400"> ({rate.estimatedDays} business day{rate.estimatedDays !== 1 ? 's' : ''})</span>
+                              {rate.estimatedDays != null && rate.estimatedDays > 0 && (
+                                <span className="text-gray-400"> ({rate.estimatedDays} day{rate.estimatedDays !== 1 ? 's' : ''})</span>
                               )}
                             </p>
                           )}

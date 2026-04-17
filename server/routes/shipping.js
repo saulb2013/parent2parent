@@ -81,13 +81,23 @@ router.post('/rates', authenticateToken, async (req, res) => {
       const sl = rate.service_level || {};
       const dateFrom = sl.delivery_date_from || rate.delivery_date_from || null;
       const dateTo = sl.delivery_date_to || rate.delivery_date_to || null;
+      // Calendar days from today to delivery date (date-only comparison
+      // so timezone offsets in the timestamps don't inflate the count).
+      let estimatedDays = null;
+      if (dateTo || dateFrom) {
+        const target = new Date(dateTo || dateFrom);
+        const today = new Date();
+        // Strip time — compare dates only
+        const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+        const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        estimatedDays = Math.round((targetDay - todayDay) / (1000 * 60 * 60 * 24));
+        if (estimatedDays < 0) estimatedDays = 0;
+      }
       return {
         service: (sl.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
         code: sl.code || rate.service_code || '',
         price: rate.rate || rate.charge || 0,
-        estimatedDays: dateFrom
-          ? Math.ceil((new Date(dateTo || dateFrom) - new Date()) / (1000 * 60 * 60 * 24))
-          : null,
+        estimatedDays,
         deliveryDateFrom: dateFrom,
         deliveryDateTo: dateTo,
       };
