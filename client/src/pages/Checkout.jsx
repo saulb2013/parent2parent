@@ -435,33 +435,36 @@ export default function Checkout() {
 
                 {shippingRates.length > 0 && (
                   <div className="space-y-3">
-                    {shippingRates.map((rate, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setSelectedRate(rate)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${
-                          selectedRate?.code === rate.code
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                            : 'border-border hover:border-gray-300'
-                        }`}
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">{rate.service}</p>
-                          {rate.estimatedDays && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Est. {rate.estimatedDays} business day{rate.estimatedDays !== 1 ? 's' : ''}
+                    {shippingRates.map((rate, i) => {
+                      const deliveryDate = rate.deliveryDateTo || rate.deliveryDateFrom;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setSelectedRate(rate)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                            selectedRate?.code === rate.code
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-border hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-gray-900">{rate.service}</p>
+                            <span className="font-bold text-primary">
+                              {formatPrice(Math.round(rate.price * 100))}
+                            </span>
+                          </div>
+                          {deliveryDate && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Estimated delivery: <span className="font-medium text-gray-700">{new Date(deliveryDate).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                              {rate.estimatedDays && (
+                                <span className="text-gray-400"> ({rate.estimatedDays} business day{rate.estimatedDays !== 1 ? 's' : ''})</span>
+                              )}
                             </p>
                           )}
-                        </div>
-                        <span className="font-bold text-primary">
-                          {formatPrice(Math.round(rate.price * 100))}
-                        </span>
-                      </button>
-                    ))}
-                    <p className="text-xs text-gray-400 mt-2">
-                      Courier fee is included in your total and handled by Parent2Parent.
-                    </p>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -578,18 +581,20 @@ export default function Checkout() {
                 <span className="font-medium">{formatPrice(platformFee)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Courier (The Courier Guy)</span>
+                <span className="text-gray-600">Courier ({selectedRate?.service || 'The Courier Guy'})</span>
                 <span className="font-medium">
-                  {selectedRate ? formatPrice(courierFee) : 'Select option above'}
+                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : '—'}
                 </span>
               </div>
               <hr className="border-border" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-primary">{formatPrice(totalPrice)}</span>
+                <span className="text-primary">{selectedRate ? formatPrice(totalPrice) : '—'}</span>
               </div>
-              {deliveryMethod === 'delivery' && selectedRate && (
-                <p className="text-xs text-gray-400">Includes {formatPrice(courierFee)} courier fee ({selectedRate.service})</p>
+              {selectedRate && (selectedRate.deliveryDateTo || selectedRate.deliveryDateFrom) && (
+                <p className="text-xs text-gray-500">
+                  Est. delivery: {new Date(selectedRate.deliveryDateTo || selectedRate.deliveryDateFrom).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
               )}
             </div>
 
