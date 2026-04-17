@@ -75,7 +75,7 @@ router.post('/rates', authenticateToken, async (req, res) => {
 
     // Return simplified rate options
     const rates = (data.rates || data).map(rate => ({
-      service: rate.service_level?.name || rate.service_name || 'Standard',
+      service: (rate.service_level?.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
       code: rate.service_level?.code || rate.service_code || '',
       price: rate.rate || rate.charge || 0,
       estimatedDays: rate.delivery_date_from

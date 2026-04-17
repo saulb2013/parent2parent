@@ -1,6 +1,7 @@
 export function formatPrice(cents) {
-  const rands = cents / 100;
-  return `R ${rands.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const rands = Math.round(cents / 100);
+  const formatted = rands.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `R${formatted}`;
 }
 
 export function formatPriceInput(cents) {

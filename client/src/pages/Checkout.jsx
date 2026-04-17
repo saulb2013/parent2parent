@@ -9,7 +9,7 @@ const PARCEL_SIZES = [
   { key: 'small',     label: 'Small box',     desc: 'Toys, shoes, bottles',          maxKg: '2 kg' },
   { key: 'medium',    label: 'Medium box',    desc: 'Car seats, disassembled chairs', maxKg: '5 kg' },
   { key: 'large',     label: 'Large box',     desc: 'Prams (folded), play mats',     maxKg: '10 kg' },
-  { key: 'oversized', label: 'Oversized',     desc: 'Cots, changing tables',          maxKg: '20 kg' },
+  { key: 'oversized', label: 'Oversized',     desc: 'Cots, changing tables',          maxKg: '10+ kg' },
 ];
 
 export default function Checkout() {
@@ -312,6 +312,26 @@ export default function Checkout() {
                   Delivery Address
                 </h2>
 
+                {user?.street_address && !form.deliveryAddress && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        deliveryAddress: user.street_address,
+                        deliveryCity: user.city || '',
+                        deliveryProvince: user.province || '',
+                        deliveryPostalCode: user.postal_code || '',
+                      }));
+                      if (addressInputRef.current) addressInputRef.current.value = user.street_address;
+                    }}
+                    className="w-full mb-4 p-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 text-left hover:border-primary/50 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-primary">Use my profile address</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{user.street_address}</p>
+                  </button>
+                )}
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -547,7 +567,7 @@ export default function Checkout() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Pay {formatPrice(totalPrice)} — Secure EFT
+                    Pay {formatPrice(totalPrice)}
                   </>
                 )}
               </button>
@@ -589,13 +609,13 @@ export default function Checkout() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Courier ({selectedRate?.service || 'The Courier Guy'})</span>
                 <span className="font-medium">
-                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : '—'}
+                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : <span className="text-gray-400 text-xs">Add address</span>}
                 </span>
               </div>
               <hr className="border-border" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-primary">{selectedRate ? formatPrice(totalPrice) : '—'}</span>
+                <span className="text-primary">{selectedRate ? formatPrice(totalPrice) : <span className="text-gray-400 text-base">—</span>}</span>
               </div>
               {selectedRate && (selectedRate.deliveryDateTo || selectedRate.deliveryDateFrom) && (
                 <p className="text-xs text-gray-500">
