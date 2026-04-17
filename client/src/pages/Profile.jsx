@@ -683,17 +683,13 @@ export default function Profile() {
               ) : (
                 <div className="space-y-3">
                   {sellerOrders.map(order => {
-                    const isDelivery = order.delivery_method === 'delivery';
-                    const isCollect = order.delivery_method === 'collect';
                     let statusLabel, statusClass;
                     if (order.status === 'delivered') {
                       statusLabel = 'Delivered'; statusClass = 'bg-green-100 text-green-700';
                     } else if (order.status === 'shipped') {
                       statusLabel = 'In transit'; statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid' && isDelivery && order.tracking_reference) {
+                    } else if (order.status === 'paid' && order.tracking_reference) {
                       statusLabel = 'Courier booked'; statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid' && isCollect) {
-                      statusLabel = 'Awaiting collection'; statusClass = 'bg-amber-100 text-amber-700';
                     } else if (order.status === 'paid') {
                       statusLabel = 'Paid'; statusClass = 'bg-green-100 text-green-700';
                     } else {
@@ -729,27 +725,19 @@ export default function Profile() {
                           </div>
                         </div>
 
-                        {/* Delivery / collection detail row */}
+                        {/* Delivery detail row */}
                         <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span className="font-medium text-gray-600">
-                            {isDelivery ? 'Delivery' : 'Collection'}
-                          </span>
-                          {isDelivery && order.delivery_city && (
-                            <span>To {order.delivery_city}, {order.delivery_province}</span>
-                          )}
-                          {isDelivery && order.tcg_waybill && (
+                          <span className="font-medium text-gray-600">Delivery</span>
+                          {order.tcg_waybill && (
                             <span>Waybill: <span className="tabular font-medium text-gray-700">{order.tcg_waybill}</span></span>
                           )}
-                          {isDelivery && order.tcg_waybill && (
+                          {order.tcg_waybill && (
                             <span
                               onClick={e => { e.preventDefault(); window.open(tcgTrackingUrl(order.tcg_waybill), '_blank'); }}
                               className="text-primary font-semibold hover:underline cursor-pointer"
                             >
                               Track
                             </span>
-                          )}
-                          {isCollect && (
-                            <span>Buyer to arrange pickup</span>
                           )}
                         </div>
                       </Link>

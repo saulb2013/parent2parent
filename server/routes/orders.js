@@ -87,8 +87,8 @@ router.get('/by-listing/:listingId', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title, l.description as listing_description,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name, seller.phone as seller_phone,
-        buyer.name as buyer_name, buyer.email as buyer_email, buyer.phone as buyer_phone
+        seller.name as seller_name,
+        buyer.name as buyer_name
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
@@ -122,7 +122,7 @@ router.get('/sales', authenticateToken, async (req, res) => {
               o.item_price, o.platform_fee, o.courier_fee, o.total_price,
               l.title as listing_title,
               (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-              buyer.name as buyer_name, buyer.email as buyer_email, buyer.phone as buyer_phone
+              buyer.name as buyer_name
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users buyer ON o.buyer_id = buyer.id
@@ -145,7 +145,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title, l.description as listing_description,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name, seller.phone as seller_phone, buyer.name as buyer_name
+        seller.name as seller_name, buyer.name as buyer_name
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
@@ -172,7 +172,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name, seller.phone as seller_phone
+        seller.name as seller_name
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id

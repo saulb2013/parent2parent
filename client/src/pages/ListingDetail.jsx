@@ -284,8 +284,6 @@ function sellerStatusLabel(status, deliveryMethod) {
 }
 
 function SoldOrderPanel({ order, tracking }) {
-  const isDelivery = order.delivery_method === 'delivery';
-  const isCollect = order.delivery_method === 'collect';
   const { label: statusLabel, cls: statusCls } = sellerStatusLabel(order.status, order.delivery_method);
 
   return (
@@ -304,69 +302,46 @@ function SoldOrderPanel({ order, tracking }) {
       <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Buyer</p>
         <p className="font-medium text-gray-900">{order.buyer_name}</p>
-        {order.buyer_email && <p className="text-gray-500">{order.buyer_email}</p>}
-        {order.buyer_phone && <p className="text-gray-500">{order.buyer_phone}</p>}
       </div>
 
-      {/* Delivery / Collection */}
+      {/* Delivery tracking */}
       <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-          {isDelivery ? 'Delivery' : 'Collection'}
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Delivery</p>
 
-        {isDelivery && (
-          <>
-            {order.delivery_city && (
+        {order.tcg_waybill ? (
+          <div className="space-y-2">
+            <p className="text-gray-600">
+              Waybill: <span className="font-semibold text-gray-900 tabular">{order.tcg_waybill}</span>
+            </p>
+            {tracking?.estimatedDelivery && (
               <p className="text-gray-600">
-                To {order.delivery_address ? `${order.delivery_address}, ` : ''}{order.delivery_city}, {order.delivery_province}
+                Estimated delivery:{' '}
+                <span className="font-medium text-gray-800">
+                  {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </span>
               </p>
             )}
-
-            {order.tcg_waybill ? (
-              <div className="space-y-2">
-                <p className="text-gray-600">
-                  Waybill: <span className="font-semibold text-gray-900 tabular">{order.tcg_waybill}</span>
-                </p>
-                {tracking?.estimatedDelivery && (
-                  <p className="text-gray-600">
-                    Estimated delivery:{' '}
-                    <span className="font-medium text-gray-800">
-                      {new Date(tracking.estimatedDelivery).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    </span>
-                  </p>
-                )}
-                {tracking?.status && (
-                  <p className="text-gray-600">
-                    Courier status: <span className="font-medium text-gray-800 capitalize">{tracking.status.replace(/-/g, ' ')}</span>
-                  </p>
-                )}
-                <a
-                  href={tcgTrackingUrl(order.tcg_waybill)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary inline-block text-center text-sm !py-2 !px-5 mt-1"
-                >
-                  Track on The Courier Guy
-                </a>
-              </div>
-            ) : order.tracking_reference ? (
-              <p className="text-gray-500">
-                Courier booked — waybill number will be available shortly.
-              </p>
-            ) : (
-              <p className="text-gray-500">
-                Shipment is being booked with The Courier Guy.
+            {tracking?.status && (
+              <p className="text-gray-600">
+                Courier status: <span className="font-medium text-gray-800 capitalize">{tracking.status.replace(/-/g, ' ')}</span>
               </p>
             )}
-          </>
-        )}
-
-        {isCollect && (
-          <p className="text-gray-600">
-            The buyer will contact you to arrange collection.
-            {order.buyer_phone && (
-              <> You can also reach them at <span className="font-medium">{order.buyer_phone}</span>.</>
-            )}
+            <a
+              href={tcgTrackingUrl(order.tcg_waybill)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-block text-center text-sm !py-2 !px-5 mt-1"
+            >
+              Track on The Courier Guy
+            </a>
+          </div>
+        ) : order.tracking_reference ? (
+          <p className="text-gray-500">
+            Courier booked — waybill number will be available shortly.
+          </p>
+        ) : (
+          <p className="text-gray-500">
+            Shipment is being booked with The Courier Guy.
           </p>
         )}
       </div>

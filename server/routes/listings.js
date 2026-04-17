@@ -93,7 +93,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const { rows } = await db.query(
       `SELECT l.*, c.name as category_name, c.slug as category_slug, c.emoji as category_emoji,
               u.name as seller_name, u.avatar_url as seller_avatar, u.city as seller_city,
-              u.province as seller_province, u.phone as seller_phone, u.postal_code as seller_postal_code, u.created_at as seller_since
+              u.province as seller_province, u.postal_code as seller_postal_code, u.created_at as seller_since
        FROM listings l
        LEFT JOIN categories c ON l.category_id = c.id
        LEFT JOIN users u ON l.seller_id = u.id

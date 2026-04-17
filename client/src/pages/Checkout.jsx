@@ -24,7 +24,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [mapsLoaded, setMapsLoaded] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState(null); // 'collect' or 'delivery'
+  const deliveryMethod = 'delivery';
 
   const [parcelSize, setParcelSize] = useState(null); // set once listing loads
   const [shippingRates, setShippingRates] = useState([]);
@@ -185,11 +185,7 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!deliveryMethod) {
-      setError('Please select a delivery method');
-      return;
-    }
-    if (deliveryMethod === 'delivery' && !form.deliveryAddress) {
+    if (!form.deliveryAddress) {
       setError('Please enter a delivery address');
       return;
     }
@@ -205,24 +201,17 @@ export default function Checkout() {
         buyerNotes: form.buyerNotes,
       };
 
-      if (deliveryMethod === 'delivery') {
-        submitData.deliveryAddress = form.deliveryUnit
-          ? `${form.deliveryUnit}, ${form.deliveryAddress}`
-          : form.deliveryAddress;
-        submitData.deliveryLat = form.deliveryLat;
-        submitData.deliveryLng = form.deliveryLng;
-        submitData.deliveryCity = form.deliveryCity;
-        submitData.deliveryProvince = form.deliveryProvince;
-        submitData.deliveryPostalCode = form.deliveryPostalCode;
-        submitData.courierFee = courierFee;
-        submitData.serviceLevelCode = selectedRate?.code || 'ECO';
-        submitData.parcelSize = parcelSize;
-      } else {
-        // Collection — use seller's location as address
-        submitData.deliveryAddress = `Collect from ${listing.city}, ${listing.province}`;
-        submitData.deliveryCity = listing.city;
-        submitData.deliveryProvince = listing.province;
-      }
+      submitData.deliveryAddress = form.deliveryUnit
+        ? `${form.deliveryUnit}, ${form.deliveryAddress}`
+        : form.deliveryAddress;
+      submitData.deliveryLat = form.deliveryLat;
+      submitData.deliveryLng = form.deliveryLng;
+      submitData.deliveryCity = form.deliveryCity;
+      submitData.deliveryProvince = form.deliveryProvince;
+      submitData.deliveryPostalCode = form.deliveryPostalCode;
+      submitData.courierFee = courierFee;
+      submitData.serviceLevelCode = selectedRate?.code || 'ECO';
+      submitData.parcelSize = parcelSize;
 
       // Step 1: Create the order
       const orderRes = await fetch('/api/orders', {
@@ -297,68 +286,18 @@ export default function Checkout() {
         {/* Left: Form */}
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Delivery Method */}
-            <div className="card p-6">
-              <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                How would you like to get your item?
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Collect Option */}
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMethod('collect')}
-                  className={`p-5 rounded-xl border-2 text-left transition-all ${
-                    deliveryMethod === 'collect'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      deliveryMethod === 'collect' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Collect</h3>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Pay online, then arrange collection with the seller from <strong>{listing.city}, {listing.province}</strong>
-                  </p>
-                  <p className="text-xs text-primary font-medium mt-2">Free — no delivery fee</p>
-                </button>
-
-                {/* Delivery Option */}
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMethod('delivery')}
-                  className={`p-5 rounded-xl border-2 text-left transition-all ${
-                    deliveryMethod === 'delivery'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      deliveryMethod === 'delivery' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Deliver</h3>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    The Courier Guy picks up from seller and delivers to your door
-                  </p>
-                  <p className="text-xs text-primary font-medium mt-2">Courier fee included in total</p>
-                </button>
+            {/* Delivery info banner */}
+            <div className="card p-5 bg-primary/5 border-primary/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Delivered by The Courier Guy</p>
+                  <p className="text-sm text-gray-600">Picked up from the seller and delivered to your door. Courier fee included in total.</p>
+                </div>
               </div>
             </div>
 
@@ -528,34 +467,6 @@ export default function Checkout() {
               </div>
             )}
 
-            {/* Collection info — only show for collect method */}
-            {deliveryMethod === 'collect' && (
-              <div className="card p-6">
-                <h2 className="font-display text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Collection Details
-                </h2>
-                <div className="bg-primary/5 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-primary mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <div>
-                      <p className="font-medium text-gray-800">Collect from {listing.seller_name}</p>
-                      <p className="text-sm text-gray-500">{listing.city}, {listing.province}</p>
-                    </div>
-                  </div>
-                  <hr className="border-primary/10 my-3" />
-                  <p className="text-sm text-gray-600">
-                    After payment, the seller will be notified and can coordinate a convenient time and exact location for collection.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Contact Details */}
             {deliveryMethod && (
               <div className="card p-6">
@@ -578,7 +489,7 @@ export default function Checkout() {
                     className="input w-full"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    {deliveryMethod === 'collect' ? 'For coordinating collection with the seller' : 'For delivery coordination'}
+                    For delivery coordination with The Courier Guy — not shared with the seller
                   </p>
                 </div>
               </div>
@@ -597,10 +508,7 @@ export default function Checkout() {
                 <textarea
                   value={form.buyerNotes}
                   onChange={(e) => setForm(prev => ({ ...prev, buyerNotes: e.target.value }))}
-                  placeholder={deliveryMethod === 'collect'
-                    ? 'Any message for the seller about collection...'
-                    : 'Any special delivery instructions or message for the seller...'
-                  }
+                  placeholder="Any special delivery instructions for the courier..."
                   rows={3}
                   className="input w-full resize-none"
                 />
@@ -614,7 +522,7 @@ export default function Checkout() {
             {deliveryMethod && (
               <button
                 type="submit"
-                disabled={submitting || (!!error && error !== 'Please select a delivery address' && error !== 'Please select a delivery method')}
+                disabled={submitting || (!!error && error !== 'Please enter a delivery address')}
                 className="btn-primary w-full text-lg py-4 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {submitting ? (
@@ -669,20 +577,12 @@ export default function Checkout() {
                 <span className="text-gray-600">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
                 <span className="font-medium">{formatPrice(platformFee)}</span>
               </div>
-              {deliveryMethod === 'delivery' && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Courier (The Courier Guy)</span>
-                  <span className="font-medium">
-                    {selectedRate ? formatPrice(courierFee) : 'Select option above'}
-                  </span>
-                </div>
-              )}
-              {deliveryMethod === 'collect' && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Collection</span>
-                  <span className="font-medium text-green-600">Free</span>
-                </div>
-              )}
+              <div className="flex justify-between">
+                <span className="text-gray-600">Courier (The Courier Guy)</span>
+                <span className="font-medium">
+                  {selectedRate ? formatPrice(courierFee) : 'Select option above'}
+                </span>
+              </div>
               <hr className="border-border" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
