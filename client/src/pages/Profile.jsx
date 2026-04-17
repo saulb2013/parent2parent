@@ -386,7 +386,7 @@ export default function Profile() {
                       maxLength={12}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">South African mobile number. The courier uses this if they can't find you.</p>
+                  <p className="text-xs text-gray-400 mt-1">Enter without the leading 0 (e.g. 82 123 4567, not 082). The courier uses this if they can't find you.</p>
                 </div>
 
                 <div>
