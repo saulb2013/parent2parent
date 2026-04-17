@@ -17,6 +17,17 @@ export default function PaymentReturn() {
       return;
     }
 
+    // Yoco redirects with ?status=cancelled/failed — trust it immediately
+    const urlStatus = searchParams.get('status');
+    if (urlStatus === 'cancelled') {
+      setStatus('cancelled');
+      return;
+    }
+    if (urlStatus === 'failed') {
+      setStatus('failed');
+      return;
+    }
+
     let attempts = 0;
     const maxAttempts = 10;
 
@@ -32,7 +43,6 @@ export default function PaymentReturn() {
 
           if (data.status === 'paid' || data.paymentStatus === 'PAID' || data.paymentStatus === 'SETTLED') {
             setStatus('paid');
-            // Fetch full order details
             fetch(`/api/orders/${orderId}`, { credentials: 'include' })
               .then(r => r.json())
               .then(d => setOrder(d.order));
@@ -121,19 +131,25 @@ export default function PaymentReturn() {
     );
   }
 
-  if (status === 'cancelled') {
+  if (status === 'cancelled' || status === 'failed') {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg className="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h2 className="font-display text-2xl font-bold text-red-800 mb-2">Payment Cancelled</h2>
-        <p className="text-gray-600 mb-6">Your payment was cancelled. No money has been charged.</p>
+        <h2 className="font-display text-2xl font-bold text-gray-900 mb-2">
+          {status === 'cancelled' ? 'Payment Cancelled' : 'Payment Failed'}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {status === 'cancelled'
+            ? 'No money was charged. Your order is still waiting — you can complete it whenever you\'re ready.'
+            : 'Something went wrong with the payment. Your order is still open — try again.'}
+        </p>
         <div className="space-y-3">
           <Link to={`/orders/${orderId}`} className="btn-primary w-full block text-center">
-            Try Again
+            Back to Order
           </Link>
           <Link to="/browse" className="btn-outline w-full block text-center">
             Continue Shopping

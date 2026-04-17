@@ -190,7 +190,7 @@ export default function OrderConfirmation() {
             <span>{formatPrice(order.platform_fee)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Courier (The Courier Guy)</span>
+            <span className="text-gray-600">Courier</span>
             <span>{order.courier_fee ? formatPrice(order.courier_fee) : 'Included'}</span>
           </div>
           <hr className="border-border" />
@@ -212,10 +212,29 @@ export default function OrderConfirmation() {
           </div>
         )}
 
-        {order.status === 'pending' && (
+        {order.status === 'pending' && order.buyer_id === user?.id && (
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
-            <p className="text-yellow-700 font-medium">Payment Pending</p>
-            <p className="text-xs text-yellow-600 mt-1">Your payment is still being processed.</p>
+            <p className="text-yellow-700 font-medium mb-3">Payment Pending</p>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/payments/initiate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ orderId: order.id }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error);
+                  window.location.href = data.paymentUrl;
+                } catch (err) {
+                  alert(err.message || 'Failed to initiate payment');
+                }
+              }}
+              className="btn-primary w-full"
+            >
+              Complete Payment — {formatPrice(order.total_price)}
+            </button>
           </div>
         )}
 
