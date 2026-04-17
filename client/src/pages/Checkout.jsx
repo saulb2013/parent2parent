@@ -651,7 +651,7 @@ export default function Checkout() {
                 className="w-20 h-20 rounded-lg object-cover"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-900 truncate">{listing.title}</h3>
+                <h3 className="font-medium text-gray-900">{listing.title}</h3>
                 <p className="text-sm text-gray-500 capitalize">{listing.condition?.replace('_', ' ')}</p>
                 <p className="text-sm text-gray-500">{listing.city}, {listing.province}</p>
               </div>
