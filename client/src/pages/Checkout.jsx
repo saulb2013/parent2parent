@@ -246,11 +246,11 @@ export default function Checkout() {
       // checkout doesn't initialise on JS-only navigations (location.href
       // / location.replace) but works on "real" browser navigations like
       // form submits and manual refreshes.
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = payData.paymentUrl;
-      document.body.appendChild(form);
-      form.submit();
+      const redirectForm = document.createElement('form');
+      redirectForm.method = 'GET';
+      redirectForm.action = payData.paymentUrl;
+      document.body.appendChild(redirectForm);
+      redirectForm.submit();
       return; // skip catch — we're leaving the page
     } catch (err) {
       setError(err.message || 'Failed to process checkout');
