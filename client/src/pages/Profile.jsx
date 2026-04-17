@@ -76,6 +76,14 @@ export default function Profile() {
     else if (viewParam === 'seller') setMode('seller');
   }, [viewParam]);
 
+  // Fire-and-forget: sync in-flight delivery statuses with TCG before
+  // fetching orders, so the data we display is up to date.
+  const refreshTrackingStatuses = () => {
+    if (!isOwn) return Promise.resolve();
+    return fetch('/api/shipping/refresh-statuses', { method: 'POST', credentials: 'include' })
+      .catch(() => {});
+  };
+
   const fetchSellerOrders = () => {
     if (!isOwn) return;
     fetch('/api/orders/sales', { credentials: 'include' })
@@ -84,11 +92,17 @@ export default function Profile() {
       .catch(() => {});
   };
 
-  useEffect(() => { fetchProfile(); if (isOwn) fetchSellerOrders(); }, [id]);
+  useEffect(() => {
+    fetchProfile();
+    if (isOwn) {
+      // Sync tracking statuses with TCG before fetching orders
+      refreshTrackingStatuses().then(() => fetchSellerOrders());
+    }
+  }, [id]);
 
   useEffect(() => {
     if (mode === 'buyer' && isOwn) {
-      fetchBuyerData();
+      refreshTrackingStatuses().then(() => fetchBuyerData());
     }
   }, [mode, id]);
 

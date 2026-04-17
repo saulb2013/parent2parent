@@ -188,6 +188,51 @@ router.post('/shipment', authenticateToken, async (req, res) => {
   }
 });
 
+// Refresh tracking statuses for all in-flight delivery orders belonging
+// to the current user (as buyer or seller). Called when the profile or
+// order list loads so statuses stay current without TCG webhooks.
+router.post('/refresh-statuses', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    if (!TCG_API_KEY) return res.json({ updated: 0 });
+
+    const { rows: inflight } = await pool.query(
+      `SELECT id, tracking_reference, status FROM orders
+       WHERE (buyer_id = $1 OR seller_id = $1)
+         AND delivery_method = 'delivery'
+         AND tracking_reference IS NOT NULL
+         AND status IN ('paid', 'shipped')`,
+      [req.user.id]
+    );
+
+    let updated = 0;
+    for (const order of inflight) {
+      try {
+        const data = await tcgFetch(`/tracking/shipments?tracking_reference=${order.tracking_reference}`);
+        const shipment = data.shipments?.[0] || data;
+        const cs = (shipment.status || '').toLowerCase();
+
+        let newStatus = null;
+        if (cs.includes('delivered') && order.status !== 'delivered') newStatus = 'delivered';
+        else if ((cs.includes('in-transit') || cs.includes('out-for-delivery')) && order.status === 'paid') newStatus = 'shipped';
+
+        if (newStatus) {
+          await pool.query('UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2', [newStatus, order.id]);
+          updated++;
+          console.log(`[REFRESH] Order #${order.id}: ${order.status} → ${newStatus}`);
+        }
+      } catch (err) {
+        console.warn(`[REFRESH] Failed for order #${order.id}:`, err.message);
+      }
+    }
+
+    res.json({ updated, checked: inflight.length });
+  } catch (err) {
+    console.error('Refresh statuses error:', err);
+    res.status(500).json({ error: 'Failed to refresh statuses' });
+  }
+});
+
 // Track shipment
 router.get('/track/:orderId', authenticateToken, async (req, res) => {
   try {
