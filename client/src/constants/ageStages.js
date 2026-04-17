@@ -5,6 +5,7 @@
 // Keep this list in sync with the server-side validation in
 // server/routes/listings.js if you ever add validation there.
 export const AGE_STAGES = [
+  // Baby & child ages
   { value: 'newborn', label: 'Newborn' },
   { value: '0-3m',    label: '0–3 months' },
   { value: '3-6m',    label: '3–6 months' },
@@ -16,6 +17,10 @@ export const AGE_STAGES = [
   { value: '4-5y',    label: '4–5 years' },
   { value: '5-6y',    label: '5–6 years' },
   { value: '6+',      label: '6+ years' },
+  // Parent / maternity stages
+  { value: 'pregnancy',  label: 'Pregnancy' },
+  { value: 'postpartum', label: 'Postpartum / Nursing' },
+  { value: 'parent',     label: 'Parent (any stage)' },
 ];
 
 // Quick lookup: value → label
