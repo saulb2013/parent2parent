@@ -192,18 +192,20 @@ export default function Profile() {
   }, [editing, initAddressAutocomplete]);
 
   const [editError, setEditError] = useState('');
+  const [missingFields, setMissingFields] = useState(new Set());
 
   const saveProfile = async () => {
     // Validate required fields
-    const missing = [];
-    if (!editForm.name?.trim()) missing.push('Name');
-    if (!editForm.phone?.trim()) missing.push('Phone');
-    if (!editForm.street_address?.trim()) missing.push('Address');
-    if (!editForm.city?.trim()) missing.push('City');
-    if (!editForm.province?.trim()) missing.push('Province');
-    if (!editForm.postal_code?.trim()) missing.push('Postal Code');
-    if (missing.length) {
-      setEditError(`Required: ${missing.join(', ')}`);
+    const missing = new Set();
+    if (!editForm.name?.trim()) missing.add('name');
+    if (!editForm.phone?.trim()) missing.add('phone');
+    if (!editForm.street_address?.trim()) missing.add('street_address');
+    if (!editForm.city?.trim()) missing.add('city');
+    if (!editForm.province?.trim()) missing.add('province');
+    if (!editForm.postal_code?.trim()) missing.add('postal_code');
+    setMissingFields(missing);
+    if (missing.size) {
+      setEditError('Please fill in all required fields to continue.');
       return;
     }
     setEditError('');
@@ -314,12 +316,12 @@ export default function Profile() {
 
               <div className="flex-1 w-full space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                  <label className={`block text-sm font-semibold mb-1 ${missingFields.has('name') ? 'text-red-600' : 'text-gray-700'}`}>Name {missingFields.has('name') && <span className="font-normal">— required</span>}</label>
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('name') ? 'border-red-400' : 'border-border'}`}
                   />
                 </div>
 
@@ -337,60 +339,60 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+                  <label className={`block text-sm font-semibold mb-1 ${missingFields.has('phone') ? 'text-red-600' : 'text-gray-700'}`}>Phone {missingFields.has('phone') && <span className="font-normal">— required</span>}</label>
                   <input
                     type="tel"
                     value={editForm.phone}
                     onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
                     placeholder="e.g., 27821234567"
-                    className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('phone') ? 'border-red-400' : 'border-border'}`}
                   />
                   <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +27). The courier will call this number if they can't find you on collection or delivery day.</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Address (for courier pickup &amp; delivery)</label>
+                  <label className={`block text-sm font-semibold mb-1 ${missingFields.has('street_address') ? 'text-red-600' : 'text-gray-700'}`}>Address (for courier pickup &amp; delivery) {missingFields.has('street_address') && <span className="font-normal">— required</span>}</label>
                   <input
                     ref={addressInputRef}
                     type="text"
                     value={editForm.street_address}
                     onChange={e => setEditForm({ ...editForm, street_address: e.target.value })}
                     placeholder="Start typing your address..."
-                    className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('street_address') ? 'border-red-400' : 'border-border'}`}
                   />
                   <p className="text-xs text-gray-400 mt-1">This is where The Courier Guy will pick up items you sell and deliver items you buy. Select from the Google suggestions to confirm.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Province</label>
+                    <label className={`block text-sm font-semibold mb-1 ${missingFields.has('province') ? 'text-red-600' : 'text-gray-700'}`}>Province {missingFields.has('province') && <span className="font-normal">— required</span>}</label>
                     <select
                       value={editForm.province}
                       onChange={e => setEditForm({ ...editForm, province: e.target.value })}
-                      className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
+                      className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white ${missingFields.has('province') ? 'border-red-400' : 'border-border'}`}
                     >
                       <option value="">Select province</option>
                       {provinces.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">City / Area</label>
+                    <label className={`block text-sm font-semibold mb-1 ${missingFields.has('city') ? 'text-red-600' : 'text-gray-700'}`}>City / Area {missingFields.has('city') && <span className="font-normal">— required</span>}</label>
                     <input
                       type="text"
                       value={editForm.city}
                       onChange={e => setEditForm({ ...editForm, city: e.target.value })}
                       placeholder="e.g., Seapoint"
-                      className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('city') ? 'border-red-400' : 'border-border'}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Postal Code</label>
+                    <label className={`block text-sm font-semibold mb-1 ${missingFields.has('postal_code') ? 'text-red-600' : 'text-gray-700'}`}>Postal Code {missingFields.has('postal_code') && <span className="font-normal">— required</span>}</label>
                     <input
                       type="text"
                       value={editForm.postal_code}
                       onChange={e => setEditForm({ ...editForm, postal_code: e.target.value })}
                       placeholder="e.g., 7530"
-                      className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('postal_code') ? 'border-red-400' : 'border-border'}`}
                     />
                   </div>
                 </div>
@@ -400,7 +402,7 @@ export default function Profile() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => { setEditing(false); setEditError(''); }} className="btn-outline text-sm !py-2 !px-5">
+                  <button onClick={() => { setEditing(false); setEditError(''); setMissingFields(new Set()); }} className="btn-outline text-sm !py-2 !px-5">
                     Cancel
                   </button>
                   <button onClick={saveProfile} disabled={saving} className="btn-accent text-sm !py-2 !px-5 disabled:opacity-50">
