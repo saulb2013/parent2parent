@@ -51,6 +51,13 @@ export default function Checkout() {
     }
   }, [user, authLoading, navigate, id]);
 
+  // Pre-fill phone from profile once auth resolves
+  useEffect(() => {
+    if (user?.phone && !form.buyerPhone) {
+      setForm(prev => ({ ...prev, buyerPhone: user.phone }));
+    }
+  }, [user]);
+
   // Load listing
   useEffect(() => {
     fetch(`/api/listings/${id}`, { credentials: 'include' })
@@ -500,6 +507,17 @@ export default function Checkout() {
                   Contact Details
                 </h2>
 
+                {user?.phone && !form.buyerPhone && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, buyerPhone: user.phone }))}
+                    className="w-full mb-4 p-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 text-left hover:border-primary/50 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-primary">Use my profile number</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{user.phone}</p>
+                  </button>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number
@@ -607,9 +625,9 @@ export default function Checkout() {
                 <span className="font-medium">{formatPrice(platformFee)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Courier ({selectedRate?.service || 'The Courier Guy'})</span>
+                <span className="text-gray-600">Courier{selectedRate ? ` (${selectedRate.service})` : ''}</span>
                 <span className="font-medium">
-                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : <span className="text-gray-400 text-xs">Add address</span>}
+                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : <span className="text-gray-400 text-xs italic">Add address</span>}
                 </span>
               </div>
               <hr className="border-border" />
