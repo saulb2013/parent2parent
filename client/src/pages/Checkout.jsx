@@ -150,7 +150,7 @@ export default function Checkout() {
       body: JSON.stringify({
         collectionAddress: listing.city,
         collectionCity: listing.city,
-        collectionPostalCode: '',
+        collectionPostalCode: listing.seller_postal_code || '',
         collectionProvince: listing.province,
         deliveryAddress: form.deliveryAddress,
         deliveryCity: form.deliveryCity,
