@@ -46,6 +46,15 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'You cannot buy your own listing' });
     }
 
+    const itemPrice = listing.price;
+    const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
+    const courierFeeAmount = deliveryMethod === 'delivery' ? (courierFee || 0) : 0;
+    const totalPrice = itemPrice + platformFee + courierFeeAmount;
+
+    const normPhone = buyerPhone
+      ? buyerPhone.replace(/[\s\-()]/g, '').replace(/^0(\d{9})$/, '+27$1').replace(/^27(\d{9})$/, '+27$1')
+      : null;
+
     // Reuse existing pending order for same buyer + listing
     const { rows: existing } = await pool.query(
       "SELECT * FROM orders WHERE buyer_id = $1 AND listing_id = $2 AND status = 'pending'",
@@ -53,13 +62,24 @@ router.post('/', authenticateToken, async (req, res) => {
     );
 
     if (existing.length) {
-      return res.status(201).json({ order: existing[0] });
+      // Update the pending order with any changed details (address, phone, etc.)
+      const { rows: updated } = await pool.query(
+        `UPDATE orders SET
+          delivery_address = $1, delivery_lat = $2, delivery_lng = $3,
+          delivery_city = $4, delivery_province = $5, delivery_postal_code = $6,
+          buyer_phone = $7, buyer_notes = $8, courier_fee = $9,
+          service_level_code = $10, parcel_size = $11, total_price = $12,
+          updated_at = NOW()
+         WHERE id = $13 RETURNING *`,
+        [
+          deliveryAddress, deliveryLat || null, deliveryLng || null,
+          deliveryCity || null, deliveryProvince || null, deliveryPostalCode || null,
+          normPhone, buyerNotes || null, courierFeeAmount || null, serviceLevelCode || null,
+          parcelSize || 'medium', totalPrice, existing[0].id
+        ]
+      );
+      return res.status(201).json({ order: updated[0] });
     }
-
-    const itemPrice = listing.price;
-    const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
-    const courierFeeAmount = deliveryMethod === 'delivery' ? (courierFee || 0) : 0;
-    const totalPrice = itemPrice + platformFee + courierFeeAmount;
 
     const { rows } = await pool.query(
       `INSERT INTO orders (buyer_id, listing_id, seller_id, item_price, platform_fee, total_price,
@@ -70,7 +90,7 @@ router.post('/', authenticateToken, async (req, res) => {
       [buyerId, listingId, listing.seller_id, itemPrice, platformFee, totalPrice,
        deliveryMethod || 'collect', deliveryAddress, deliveryLat || null, deliveryLng || null, deliveryCity || null,
        deliveryProvince || null, deliveryPostalCode || null,
-       buyerPhone ? buyerPhone.replace(/[\s\-()]/g, '').replace(/^0(\d{9})$/, '+27$1').replace(/^27(\d{9})$/, '+27$1') : null,
+       normPhone,
        buyerNotes || null,
        courierFeeAmount || null, serviceLevelCode || null, parcelSize || 'medium']
     );

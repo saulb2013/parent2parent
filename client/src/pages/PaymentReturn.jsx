@@ -19,12 +19,13 @@ export default function PaymentReturn() {
 
     // Yoco redirects with ?status=cancelled/failed — trust it immediately
     const urlStatus = searchParams.get('status');
-    if (urlStatus === 'cancelled') {
-      setStatus('cancelled');
-      return;
-    }
-    if (urlStatus === 'failed') {
-      setStatus('failed');
+    if (urlStatus === 'cancelled' || urlStatus === 'failed') {
+      setStatus(urlStatus);
+      // Fetch order to get listing ID for the retry link
+      fetch(`/api/orders/${orderId}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => setOrder(d.order))
+        .catch(() => {});
       return;
     }
 
@@ -148,11 +149,14 @@ export default function PaymentReturn() {
             : 'Something went wrong with the payment. Your order is still open — try again.'}
         </p>
         <div className="space-y-3">
-          <Link to={`/orders/${orderId}`} className="btn-primary w-full block text-center">
-            Back to Order
+          <Link
+            to={order?.listing_id ? `/checkout/${order.listing_id}` : `/orders/${orderId}`}
+            className="btn-primary w-full block text-center"
+          >
+            Return to Checkout
           </Link>
           <Link to="/browse" className="btn-outline w-full block text-center">
-            Continue Shopping
+            Browse Other Items
           </Link>
         </div>
       </div>
