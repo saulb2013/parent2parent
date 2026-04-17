@@ -231,27 +231,12 @@ export default function Checkout() {
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error);
 
-      // Step 2: Immediately initiate payment — redirect to Yoco checkout
-      const payRes = await fetch('/api/payments/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ orderId: orderData.order.id }),
-      });
-
-      const payData = await payRes.json();
-      if (!payRes.ok) throw new Error(payData.error || 'Failed to initiate payment');
-
-      // Redirect to Yoco via a hidden form submission — Yoco's hosted
-      // checkout doesn't initialise on JS-only navigations (location.href
-      // / location.replace) but works on "real" browser navigations like
-      // form submits and manual refreshes.
-      const redirectForm = document.createElement('form');
-      redirectForm.method = 'GET';
-      redirectForm.action = payData.paymentUrl;
-      document.body.appendChild(redirectForm);
-      redirectForm.submit();
-      return; // skip catch — we're leaving the page
+      // Step 2: Navigate to server-side redirect endpoint — the server
+      // creates the Yoco checkout and responds with a 302 to Yoco's hosted
+      // page. This is a clean browser navigation (not JS-initiated) so
+      // Yoco's page initialises correctly.
+      window.location.href = `/api/payments/redirect/${orderData.order.id}`;
+      return;
     } catch (err) {
       setError(err.message || 'Failed to process checkout');
       setSubmitting(false);

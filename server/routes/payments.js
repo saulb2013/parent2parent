@@ -264,10 +264,40 @@ router.post('/initiate', authenticateToken, async (req, res) => {
       [checkout.id, order.id]
     );
 
-    res.json({ paymentUrl: checkout.redirectUrl, checkoutId: checkout.id });
+    res.json({ paymentUrl: checkout.redirectUrl, checkoutId: checkout.id, orderId: order.id });
   } catch (err) {
     console.error('[YOCO] Initiate error:', err);
     res.status(500).json({ error: err.message || 'Failed to initiate payment' });
+  }
+});
+
+// Server-side redirect to Yoco — the browser leaves the SPA cleanly
+// and follows a 302, which Yoco handles correctly (unlike JS-initiated
+// navigations from within React).
+router.get('/redirect/:orderId', authenticateToken, async (req, res) => {
+  try {
+    const pool = req.app.get('db');
+    const { rows: orders } = await pool.query(
+      'SELECT * FROM orders WHERE id = $1 AND buyer_id = $2',
+      [req.params.orderId, req.user.id]
+    );
+    if (!orders.length) return res.status(404).send('Order not found');
+
+    const order = orders[0];
+    if (order.status !== 'pending') return res.status(400).send('Order is not pending');
+
+    const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.onrender.com';
+    const checkout = await createYocoCheckout({ order, clientUrl });
+
+    await pool.query(
+      'UPDATE orders SET payment_reference = $1, updated_at = NOW() WHERE id = $2',
+      [checkout.id, order.id]
+    );
+
+    res.redirect(checkout.redirectUrl);
+  } catch (err) {
+    console.error('[YOCO] Redirect error:', err);
+    res.status(500).send('Failed to initiate payment');
   }
 });
 

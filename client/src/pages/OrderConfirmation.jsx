@@ -216,24 +216,8 @@ export default function OrderConfirmation() {
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
             <p className="text-yellow-700 font-medium mb-3">Payment Pending</p>
             <button
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/payments/initiate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ orderId: order.id }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error);
-                  const form = document.createElement('form');
-                  form.method = 'GET';
-                  form.action = data.paymentUrl;
-                  document.body.appendChild(form);
-                  form.submit();
-                } catch (err) {
-                  alert(err.message || 'Failed to initiate payment');
-                }
+              onClick={() => {
+                window.location.href = `/api/payments/redirect/${order.id}`;
               }}
               className="btn-primary w-full"
             >
