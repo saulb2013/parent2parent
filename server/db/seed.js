@@ -37,7 +37,12 @@ async function seed() {
     ['Toys & Play', 'toys-play', '\u{1F9F8}', 'Educational toys, playsets, and games'],
     ['Clothing', 'clothing', '\u{1F476}', 'Baby and kids clothing bundles'],
     ['Carriers & Slings', 'carriers-slings', '\u{1F931}', 'Baby carriers, wraps, and slings'],
-    ['Outdoor & Garden', 'outdoor-garden', '\u{1F33F}', 'Swings, trampolines, and outdoor play equipment']
+    ['Outdoor & Garden', 'outdoor-garden', '\u{1F33F}', 'Swings, trampolines, and outdoor play equipment'],
+    ['Bath & Changing', 'bath-changing', '\u{1F6C1}', 'Baby baths, nappy bins, change mats, and potties'],
+    ['Safety & Monitors', 'safety-monitors', '\u{1F4E1}', 'Baby monitors, safety gates, and corner guards'],
+    ['Nursery & Decor', 'nursery-decor', '\u{1F319}', 'Mobiles, lamps, storage baskets, and wall art'],
+    ['Books & Learning', 'books-learning', '\u{1F4DA}', 'Books, puzzles, and educational materials'],
+    ['Maternity', 'maternity', '\u{1F930}', 'Pregnancy pillows, nursing wear, and maternity bags'],
   ];
 
   for (const c of categories) {
