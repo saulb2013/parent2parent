@@ -32,7 +32,19 @@ async function syncCategories() {
   console.log(`[STARTUP] Categories synced (${CATEGORIES.length} defined)`);
 }
 
+// Lightweight migrations — add columns that may be missing on older DBs.
+async function runMigrations() {
+  const migrations = [
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS unit TEXT",
+  ];
+  for (const sql of migrations) {
+    try { await pool.query(sql); } catch {}
+  }
+  console.log('[STARTUP] Migrations checked');
+}
+
 app.listen(PORT, async () => {
   console.log(`Parent2Parent API running on http://localhost:${PORT}`);
+  try { await runMigrations(); } catch (err) { console.error('[STARTUP] Migration failed:', err.message); }
   try { await syncCategories(); } catch (err) { console.error('[STARTUP] Category sync failed:', err.message); }
 });

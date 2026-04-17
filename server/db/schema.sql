@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   bio TEXT,
   street_address TEXT,
+  unit TEXT,
   postal_code TEXT,
   reset_token TEXT,
   reset_token_expires TIMESTAMPTZ,

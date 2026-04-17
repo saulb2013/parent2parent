@@ -9,7 +9,7 @@ router.get('/:id', async (req, res) => {
   const db = req.app.get('db');
   try {
     const { rows: userRows } = await db.query(
-      'SELECT id, name, email, avatar_url, province, city, street_address, postal_code, phone, bio, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, province, city, street_address, unit, postal_code, phone, bio, created_at FROM users WHERE id = $1',
       [req.params.id]
     );
     if (!userRows[0]) return res.status(404).json({ error: 'User not found' });
@@ -44,7 +44,7 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  const { name, province, city, phone, bio, street_address, postal_code } = req.body;
+  const { name, province, city, phone, bio, street_address, unit, postal_code } = req.body;
   const avatar_url = req.file ? req.file.path : null;
 
   // Prevent blanking out required fields
@@ -73,9 +73,9 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
       `UPDATE users SET name = COALESCE($1, name), province = COALESCE($2, province),
        city = COALESCE($3, city), phone = COALESCE($4, phone), bio = COALESCE($5, bio),
        avatar_url = COALESCE($6, avatar_url), street_address = COALESCE($7, street_address),
-       postal_code = COALESCE($8, postal_code)
-       WHERE id = $9`,
-      [name, province, city, normPhone, bio, avatar_url, street_address, postal_code, req.params.id]
+       unit = $8, postal_code = COALESCE($9, postal_code)
+       WHERE id = $10`,
+      [name, province, city, normPhone, bio, avatar_url, street_address, unit || '', postal_code, req.params.id]
     );
     res.json({ message: 'Profile updated' });
   } catch (err) {
