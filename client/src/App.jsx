@@ -12,7 +12,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import NotFound from './pages/NotFound';
 import About from './pages/About';
-import SafetyTips from './pages/SafetyTips';
 import FAQs from './pages/FAQs';
 import Contact from './pages/Contact';
 import EditListing from './pages/EditListing';
@@ -45,7 +44,6 @@ export default function App() {
               <Route path="/orders/:id" element={<OrderConfirmation />} />
               <Route path="/payment/return" element={<PaymentReturn />} />
               <Route path="/about" element={<About />} />
-              <Route path="/safety-tips" element={<SafetyTips />} />
               <Route path="/faqs" element={<FAQs />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />

@@ -51,6 +51,16 @@ export default function Browse() {
     fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories));
   }, []);
 
+  // Sync filters when URL changes externally (e.g. footer category links)
+  useEffect(() => {
+    const urlCategory = searchParams.get('category') || '';
+    const urlSearch = searchParams.get('search') || '';
+    setFilters(prev => {
+      if (prev.category === urlCategory && prev.search === urlSearch) return prev;
+      return { ...prev, category: urlCategory, search: urlSearch, page: 1 };
+    });
+  }, [searchParams]);
+
   useEffect(() => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => {

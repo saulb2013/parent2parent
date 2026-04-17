@@ -45,8 +45,7 @@ export default function FAQs() {
               </button>
               {open === i && (
                 <div className="px-5 pb-5 text-gray-600 leading-relaxed text-sm border-t border-border pt-4">
-                  {faq.a}{' '}
-                  {i === 6 && <Link to="/safety-tips" className="text-accent font-semibold hover:underline">View Safety Tips</Link>}
+                  {faq.a}
                 </div>
               )}
             </div>
