@@ -484,13 +484,19 @@ export default function Checkout() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number
                   </label>
-                  <input
-                    type="tel"
-                    value={form.buyerPhone}
-                    onChange={(e) => setForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
-                    placeholder="+27 XX XXX XXXX"
-                    className="input w-full"
-                  />
+                  <div className="flex items-center border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary">
+                    <span className="flex items-center gap-1.5 pl-3 pr-2 text-sm text-gray-500 bg-gray-50 border-r border-border self-stretch leading-[42px]">
+                      <span className="text-base">🇿🇦</span> +27
+                    </span>
+                    <input
+                      type="tel"
+                      value={form.buyerPhone.replace(/^\+?27/, '')}
+                      onChange={(e) => setForm(prev => ({ ...prev, buyerPhone: '+27' + e.target.value.replace(/[^\d]/g, '').slice(0, 9) }))}
+                      placeholder="82 123 4567"
+                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                      maxLength={12}
+                    />
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">
                     For delivery coordination with The Courier Guy — not shared with the seller
                   </p>

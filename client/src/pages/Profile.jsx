@@ -200,10 +200,19 @@ export default function Profile() {
     if (digits.startsWith('0') && digits.length === 10) return '+27' + digits.slice(1);
     if (digits.startsWith('27') && digits.length === 11) return '+' + digits;
     if (digits.startsWith('+27') && digits.length === 12) return digits;
-    return digits; // return as-is so validation catches it
+    return digits;
   };
 
   const isValidSAPhone = (phone) => /^\+27\d{9}$/.test(phone);
+
+  // Format +27XXXXXXXXX → +27 XX XXX XXXX
+  const formatSAPhone = (phone) => {
+    if (!phone) return '';
+    const norm = normaliseSAPhone(phone);
+    const m = norm.match(/^\+27(\d{2})(\d{3})(\d{4})$/);
+    if (m) return `+27 ${m[1]} ${m[2]} ${m[3]}`;
+    return phone;
+  };
 
   const saveProfile = async () => {
     // Validate required fields
@@ -364,14 +373,20 @@ export default function Profile() {
 
                 <div>
                   <label className={`block text-sm font-semibold mb-1 ${missingFields.has('phone') ? 'text-red-600' : 'text-gray-700'}`}>Phone {missingFields.has('phone') && <span className="font-normal">— required</span>}</label>
-                  <input
-                    type="tel"
-                    value={editForm.phone}
-                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="+27 82 123 4567"
-                    className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('phone') ? 'border-red-400' : 'border-border'}`}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">South African mobile number (+27 followed by 9 digits). The courier uses this if they can't find you.</p>
+                  <div className={`flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary ${missingFields.has('phone') ? 'border-red-400' : 'border-border'}`}>
+                    <span className="flex items-center gap-1.5 pl-3 pr-2 text-sm text-gray-500 bg-gray-50 border-r border-border self-stretch leading-[42px]">
+                      <span className="text-base">🇿🇦</span> +27
+                    </span>
+                    <input
+                      type="tel"
+                      value={editForm.phone.replace(/^\+?27/, '')}
+                      onChange={e => setEditForm({ ...editForm, phone: '+27' + e.target.value.replace(/[^\d]/g, '').slice(0, 9) })}
+                      placeholder="82 123 4567"
+                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                      maxLength={12}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">South African mobile number. The courier uses this if they can't find you.</p>
                 </div>
 
                 <div>
@@ -468,11 +483,9 @@ export default function Profile() {
               {profile.bio && <p className="text-gray-600 mt-3 text-sm leading-relaxed">{profile.bio}</p>}
 
               {profile.phone && isOwn && (
-                <p className="text-gray-400 text-xs mt-2 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {profile.phone} <span className="text-gray-300 ml-1">(only visible to you)</span>
+                <p className="text-gray-400 text-xs mt-2 flex items-center gap-1.5">
+                  <span className="text-base leading-none">🇿🇦</span>
+                  {formatSAPhone(profile.phone)} <span className="text-gray-300 ml-1">(only visible to you)</span>
                 </p>
               )}
 
