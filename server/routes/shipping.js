@@ -73,17 +73,26 @@ router.post('/rates', authenticateToken, async (req, res) => {
       body: JSON.stringify(ratesBody),
     });
 
+    const rawRates = data.rates || data;
+    if (rawRates.length) {
+      console.log('[SHIPPING] Sample raw rate:', JSON.stringify(rawRates[0]));
+    }
+
     // Return simplified rate options
-    const rates = (data.rates || data).map(rate => ({
-      service: (rate.service_level?.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
-      code: rate.service_level?.code || rate.service_code || '',
-      price: rate.rate || rate.charge || 0,
-      estimatedDays: rate.delivery_date_from
-        ? Math.ceil((new Date(rate.delivery_date_to || rate.delivery_date_from) - new Date()) / (1000 * 60 * 60 * 24))
-        : null,
-      deliveryDateFrom: rate.delivery_date_from,
-      deliveryDateTo: rate.delivery_date_to,
-    }));
+    const rates = rawRates.map(rate => {
+      const dateFrom = rate.delivery_date_from || rate.min_delivery_date || rate.deliveryDateFrom || null;
+      const dateTo = rate.delivery_date_to || rate.max_delivery_date || rate.deliveryDateTo || null;
+      return {
+        service: (rate.service_level?.name || rate.service_name || 'Standard').replace(/\s*\(.*?\)\s*/g, '').trim(),
+        code: rate.service_level?.code || rate.service_code || '',
+        price: rate.rate || rate.charge || 0,
+        estimatedDays: dateFrom
+          ? Math.ceil((new Date(dateTo || dateFrom) - new Date()) / (1000 * 60 * 60 * 24))
+          : null,
+        deliveryDateFrom: dateFrom,
+        deliveryDateTo: dateTo,
+      };
+    });
 
     res.json({ rates });
   } catch (err) {
