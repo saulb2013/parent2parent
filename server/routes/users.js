@@ -59,6 +59,15 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
     return res.status(400).json({ error: `Required fields cannot be empty: ${missing.join(', ')}` });
   }
 
+  // Normalise SA phone: strip spaces/dashes, convert leading 0 to +27
+  let normPhone = phone;
+  if (phone) {
+    const digits = phone.replace(/[\s\-()]/g, '');
+    if (digits.startsWith('0') && digits.length === 10) normPhone = '+27' + digits.slice(1);
+    else if (digits.startsWith('27') && digits.length === 11) normPhone = '+' + digits;
+    else normPhone = digits;
+  }
+
   try {
     await db.query(
       `UPDATE users SET name = COALESCE($1, name), province = COALESCE($2, province),
@@ -66,7 +75,7 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
        avatar_url = COALESCE($6, avatar_url), street_address = COALESCE($7, street_address),
        postal_code = COALESCE($8, postal_code)
        WHERE id = $9`,
-      [name, province, city, phone, bio, avatar_url, street_address, postal_code, req.params.id]
+      [name, province, city, normPhone, bio, avatar_url, street_address, postal_code, req.params.id]
     );
     res.json({ message: 'Profile updated' });
   } catch (err) {

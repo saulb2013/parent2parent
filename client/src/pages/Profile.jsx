@@ -194,6 +194,17 @@ export default function Profile() {
   const [editError, setEditError] = useState('');
   const [missingFields, setMissingFields] = useState(new Set());
 
+  // Normalise SA phone: strip spaces/dashes, convert leading 0 to +27
+  const normaliseSAPhone = (raw) => {
+    const digits = raw.replace(/[\s\-()]/g, '');
+    if (digits.startsWith('0') && digits.length === 10) return '+27' + digits.slice(1);
+    if (digits.startsWith('27') && digits.length === 11) return '+' + digits;
+    if (digits.startsWith('+27') && digits.length === 12) return digits;
+    return digits; // return as-is so validation catches it
+  };
+
+  const isValidSAPhone = (phone) => /^\+27\d{9}$/.test(phone);
+
   const saveProfile = async () => {
     // Validate required fields
     const missing = new Set();
@@ -203,12 +214,25 @@ export default function Profile() {
     if (!editForm.city?.trim()) missing.add('city');
     if (!editForm.province?.trim()) missing.add('province');
     if (!editForm.postal_code?.trim()) missing.add('postal_code');
+
+    // Normalise and validate phone
+    const normPhone = normaliseSAPhone(editForm.phone || '');
+    if (editForm.phone?.trim() && !isValidSAPhone(normPhone)) {
+      missing.add('phone');
+      setMissingFields(missing);
+      setEditError('Phone must be a valid South African number: +27 followed by 9 digits (e.g. +27 82 123 4567)');
+      return;
+    }
+
     setMissingFields(missing);
     if (missing.size) {
       setEditError('Please fill in all required fields to continue.');
       return;
     }
     setEditError('');
+
+    // Store normalised phone
+    editForm.phone = normPhone;
     setSaving(true);
     try {
       const formData = new FormData();
@@ -344,10 +368,10 @@ export default function Profile() {
                     type="tel"
                     value={editForm.phone}
                     onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="e.g., 27821234567"
+                    placeholder="+27 82 123 4567"
                     className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${missingFields.has('phone') ? 'border-red-400' : 'border-border'}`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +27). The courier will call this number if they can't find you on collection or delivery day.</p>
+                  <p className="text-xs text-gray-400 mt-1">South African mobile number (+27 followed by 9 digits). The courier uses this if they can't find you.</p>
                 </div>
 
                 <div>

@@ -69,7 +69,9 @@ router.post('/', authenticateToken, async (req, res) => {
        RETURNING *`,
       [buyerId, listingId, listing.seller_id, itemPrice, platformFee, totalPrice,
        deliveryMethod || 'collect', deliveryAddress, deliveryLat || null, deliveryLng || null, deliveryCity || null,
-       deliveryProvince || null, deliveryPostalCode || null, buyerPhone || null, buyerNotes || null,
+       deliveryProvince || null, deliveryPostalCode || null,
+       buyerPhone ? buyerPhone.replace(/[\s\-()]/g, '').replace(/^0(\d{9})$/, '+27$1').replace(/^27(\d{9})$/, '+27$1') : null,
+       buyerNotes || null,
        courierFeeAmount || null, serviceLevelCode || null, parcelSize || 'medium']
     );
 
