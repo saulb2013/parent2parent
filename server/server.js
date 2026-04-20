@@ -94,6 +94,34 @@ async function runMigrations() {
   try {
     await pool.query("UPDATE users SET is_admin = TRUE WHERE email = 'saul.bloch13@gmail.com'");
   } catch {}
+
+  // Backfill escrow rows for orders that were paid before the escrow system existed
+  try {
+    const { rowCount } = await pool.query(
+      `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
+       SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
+              'released', o.created_at, o.created_at + INTERVAL '7 days'
+       FROM orders o
+       WHERE o.status IN ('paid', 'shipped', 'delivered')
+         AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
+       ON CONFLICT (order_id) DO NOTHING`
+    );
+    if (rowCount > 0) {
+      // Also create payout rows for the backfilled escrows
+      await pool.query(
+        `INSERT INTO seller_payouts (seller_id, order_id, escrow_id, amount, platform_fee, status)
+         SELECT eh.seller_id, eh.order_id, eh.id, eh.item_amount, eh.platform_fee, 'pending'
+         FROM escrow_holds eh
+         WHERE eh.status = 'released'
+           AND NOT EXISTS (SELECT 1 FROM seller_payouts sp WHERE sp.order_id = eh.order_id)
+         ON CONFLICT (order_id) DO NOTHING`
+      );
+      console.log(`[STARTUP] Backfilled ${rowCount} escrow holds for existing orders`);
+    }
+  } catch (err) {
+    console.error('[STARTUP] Escrow backfill failed:', err.message);
+  }
+
   console.log('[STARTUP] Migrations checked');
 }
 
