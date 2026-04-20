@@ -4,6 +4,17 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 const PLATFORM_FEE_PERCENT = 5;
+const YOCO_RATE = 0.0299; // 2.6% + VAT ≈ 2.99%
+
+// Calculate buyer protection fee: covers our 5% margin + Yoco's processing
+// fee on the entire transaction. Grossed up so after Yoco takes their cut,
+// we net exactly PLATFORM_FEE_PERCENT on the item price.
+function calcBuyerProtectionFee(itemPrice, courierFee) {
+  const desiredMargin = itemPrice * PLATFORM_FEE_PERCENT / 100;
+  const yocoCostOnItemAndCourier = YOCO_RATE * (itemPrice + courierFee);
+  const fee = (desiredMargin + yocoCostOnItemAndCourier) / (1 - YOCO_RATE);
+  return Math.round(fee);
+}
 
 // Create order (checkout)
 router.post('/', authenticateToken, async (req, res) => {
@@ -47,8 +58,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const itemPrice = listing.price;
-    const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
     const courierFeeAmount = deliveryMethod === 'delivery' ? (courierFee || 0) : 0;
+    const platformFee = calcBuyerProtectionFee(itemPrice, courierFeeAmount);
     const totalPrice = itemPrice + platformFee + courierFeeAmount;
 
     const normPhone = buyerPhone

@@ -56,14 +56,22 @@ router.post('/payouts/:id/mark-paid', authenticateToken, requireAdmin, async (re
 router.get('/revenue', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const pool = req.app.get('db');
+    // Yoco rate for estimating processing fees
+    const YOCO_RATE = 0.0299;
     const { rows } = await pool.query(`
       SELECT
         COALESCE(SUM(CASE WHEN status IN ('released') THEN platform_fee ELSE 0 END), 0) as total_revenue,
         COALESCE(SUM(CASE WHEN status = 'holding' THEN platform_fee ELSE 0 END), 0) as pending_revenue,
         COALESCE(SUM(CASE WHEN status = 'holding' THEN item_amount ELSE 0 END), 0) as holding_for_sellers,
-        COALESCE(SUM(courier_fee), 0) as total_courier_fees
+        COALESCE(SUM(courier_fee), 0) as total_courier_fees,
+        COALESCE(SUM(item_amount + platform_fee + courier_fee), 0) as total_buyer_paid
       FROM escrow_holds
     `);
+    const totalBuyerPaid = Number(rows[0].total_buyer_paid);
+    const estimatedYocoFees = Math.round(totalBuyerPaid * YOCO_RATE);
+    rows[0].estimated_yoco_fees = estimatedYocoFees;
+    // Net revenue = buyer protection fees collected minus Yoco's cut on everything
+    rows[0].net_revenue = Number(rows[0].total_revenue) - Math.round(Number(rows[0].total_revenue) * YOCO_RATE);
     const { rows: payoutRows } = await pool.query(`
       SELECT
         COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as owed_to_sellers,

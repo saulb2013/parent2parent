@@ -119,28 +119,42 @@ export default function Admin() {
 
       {/* Revenue Summary */}
       {revenue && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Your Revenue</p>
-            <p className="text-2xl font-bold text-primary">{formatPrice(Number(revenue.total_revenue))}</p>
-            <p className="text-xs text-gray-400 mt-1">5% platform fee earned</p>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            <div className="card p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Buyer Protection Collected</p>
+              <p className="text-2xl font-bold text-primary">{formatPrice(Number(revenue.total_revenue))}</p>
+              <p className="text-xs text-gray-400 mt-1">Total fees charged to buyers</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Yoco Fees (est.)</p>
+              <p className="text-2xl font-bold text-red-500">-{formatPrice(Number(revenue.estimated_yoco_fees))}</p>
+              <p className="text-xs text-gray-400 mt-1">~2.99% of all buyer payments</p>
+            </div>
+            <div className="card p-4 border-primary/30">
+              <p className="text-xs text-primary uppercase tracking-wider font-semibold mb-1">Your Net Revenue</p>
+              <p className="text-2xl font-bold text-primary">{formatPrice(Number(revenue.net_revenue))}</p>
+              <p className="text-xs text-gray-400 mt-1">What you actually keep</p>
+            </div>
           </div>
-          <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">In Escrow</p>
-            <p className="text-2xl font-bold text-blue-600">{formatPrice(Number(revenue.holding_for_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">Being held for 7 days</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+            <div className="card p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">In Escrow</p>
+              <p className="text-2xl font-bold text-blue-600">{formatPrice(Number(revenue.holding_for_sellers))}</p>
+              <p className="text-xs text-gray-400 mt-1">Awaiting delivery + 7 days</p>
+            </div>
+            <div className="card p-4 border-orange-200">
+              <p className="text-xs text-orange-600 uppercase tracking-wider font-semibold mb-1">You Need to EFT</p>
+              <p className="text-2xl font-bold text-orange-600">{formatPrice(Number(revenue.owed_to_sellers))}</p>
+              <p className="text-xs text-gray-400 mt-1">Escrow released, sellers waiting</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Already Paid Out</p>
+              <p className="text-2xl font-bold text-green-600">{formatPrice(Number(revenue.paid_to_sellers))}</p>
+              <p className="text-xs text-gray-400 mt-1">EFTs completed</p>
+            </div>
           </div>
-          <div className="card p-4 border-orange-200">
-            <p className="text-xs text-orange-600 uppercase tracking-wider font-semibold mb-1">You Need to EFT</p>
-            <p className="text-2xl font-bold text-orange-600">{formatPrice(Number(revenue.owed_to_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">Escrow released, sellers waiting</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Already Paid Out</p>
-            <p className="text-2xl font-bold text-green-600">{formatPrice(Number(revenue.paid_to_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">EFTs completed</p>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Tabs */}

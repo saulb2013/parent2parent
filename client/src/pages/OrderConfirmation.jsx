@@ -458,7 +458,7 @@ export default function OrderConfirmation() {
             <span>{formatPrice(order.item_price)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Platform fee (5%)</span>
+            <span className="text-gray-600">Buyer protection</span>
             <span>{formatPrice(order.platform_fee)}</span>
           </div>
           <div className="flex justify-between">

@@ -4,6 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
 
 const PLATFORM_FEE_PERCENT = 5;
+const YOCO_RATE = 0.0299; // 2.6% + VAT
+
+function calcBuyerProtectionFee(itemPrice, courierFee) {
+  const desiredMargin = itemPrice * PLATFORM_FEE_PERCENT / 100;
+  const yocoCostOnItemAndCourier = YOCO_RATE * (itemPrice + courierFee);
+  const fee = (desiredMargin + yocoCostOnItemAndCourier) / (1 - YOCO_RATE);
+  return Math.round(fee);
+}
 
 const PARCEL_SIZES = [
   { key: 'small',     label: 'Small box',     desc: 'Toys, shoes, bottles',          maxKg: '2 kg' },
@@ -264,8 +272,8 @@ export default function Checkout() {
   }
 
   const itemPrice = listing.price;
-  const platformFee = Math.round(itemPrice * PLATFORM_FEE_PERCENT / 100);
   const courierFee = deliveryMethod === 'delivery' && selectedRate ? Math.round(selectedRate.price * 100) : 0;
+  const platformFee = calcBuyerProtectionFee(itemPrice, courierFee);
   const totalPrice = itemPrice + platformFee + courierFee;
 
   return (
@@ -616,7 +624,7 @@ export default function Checkout() {
                 <span className="font-medium">{formatPrice(itemPrice)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
+                <span className="text-gray-600">Buyer protection</span>
                 <span className="font-medium">{formatPrice(platformFee)}</span>
               </div>
               <div className="flex justify-between">
