@@ -36,15 +36,101 @@ async function syncCategories() {
 async function runMigrations() {
   const migrations = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS unit TEXT",
+    `CREATE TABLE IF NOT EXISTS escrow_holds (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER REFERENCES orders(id) NOT NULL UNIQUE,
+      seller_id INTEGER REFERENCES users(id) NOT NULL,
+      buyer_id INTEGER REFERENCES users(id) NOT NULL,
+      item_amount INTEGER NOT NULL,
+      platform_fee INTEGER NOT NULL,
+      courier_fee INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'holding',
+      hold_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      release_due_at TIMESTAMPTZ NOT NULL,
+      paused_at TIMESTAMPTZ,
+      time_remaining_ms INTEGER,
+      released_at TIMESTAMPTZ,
+      buyer_confirmed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS seller_payouts (
+      id SERIAL PRIMARY KEY,
+      seller_id INTEGER REFERENCES users(id) NOT NULL,
+      order_id INTEGER REFERENCES orders(id) NOT NULL UNIQUE,
+      escrow_id INTEGER REFERENCES escrow_holds(id) NOT NULL,
+      amount INTEGER NOT NULL,
+      platform_fee INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending',
+      paid_at TIMESTAMPTZ,
+      admin_notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS disputes (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER REFERENCES orders(id) NOT NULL,
+      escrow_id INTEGER REFERENCES escrow_holds(id) NOT NULL,
+      raised_by INTEGER REFERENCES users(id) NOT NULL,
+      reason TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'open',
+      return_tracking TEXT,
+      seller_confirmed_return_at TIMESTAMPTZ,
+      yoco_refund_id TEXT,
+      admin_notes TEXT,
+      escalated_at TIMESTAMPTZ,
+      resolved_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
   ];
   for (const sql of migrations) {
     try { await pool.query(sql); } catch {}
   }
+  // Set admin user
+  try {
+    await pool.query("UPDATE users SET is_admin = TRUE WHERE email = 'saul.bloch13@gmail.com'");
+  } catch {}
   console.log('[STARTUP] Migrations checked');
+}
+
+// Auto-release escrows that have passed their 7-day hold period, and
+// escalate disputes older than 48 hours to admin review.
+async function releaseExpiredEscrows() {
+  const { rows: due } = await pool.query(
+    `UPDATE escrow_holds
+     SET status = 'released', released_at = NOW(), updated_at = NOW()
+     WHERE status = 'holding' AND release_due_at <= NOW()
+     RETURNING *`
+  );
+  for (const escrow of due) {
+    await pool.query(
+      `INSERT INTO seller_payouts (seller_id, order_id, escrow_id, amount, platform_fee, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
+       ON CONFLICT (order_id) DO NOTHING`,
+      [escrow.seller_id, escrow.order_id, escrow.id, escrow.item_amount, escrow.platform_fee]
+    );
+    console.log(`[ESCROW] Auto-released escrow #${escrow.id} for order #${escrow.order_id}`);
+  }
+  // Auto-escalate disputes older than 48hrs
+  await pool.query(
+    `UPDATE disputes SET status = 'admin_review', escalated_at = NOW(), updated_at = NOW()
+     WHERE status = 'open' AND created_at <= NOW() - INTERVAL '48 hours'`
+  );
+  return due.length;
 }
 
 app.listen(PORT, async () => {
   console.log(`Parent2Parent API running on http://localhost:${PORT}`);
   try { await runMigrations(); } catch (err) { console.error('[STARTUP] Migration failed:', err.message); }
   try { await syncCategories(); } catch (err) { console.error('[STARTUP] Category sync failed:', err.message); }
+
+  // Run escrow release once at startup, then every 5 minutes
+  try { await releaseExpiredEscrows(); } catch (err) { console.error('[ESCROW] Startup release failed:', err.message); }
+  setInterval(async () => {
+    try { await releaseExpiredEscrows(); } catch (err) { console.error('[ESCROW] Interval release failed:', err.message); }
+  }, 5 * 60 * 1000);
 });

@@ -11,6 +11,9 @@ const categoriesRoutes = require('./routes/categories');
 const ordersRoutes = require('./routes/orders');
 const paymentsRoutes = require('./routes/payments');
 const shippingRoutes = require('./routes/shipping');
+const escrowRoutes = require('./routes/escrow');
+const disputeRoutes = require('./routes/disputes');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -34,6 +37,9 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/escrow', escrowRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve React frontend in production
 const clientBuild = path.join(__dirname, '..', 'client', 'dist');

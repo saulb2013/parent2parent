@@ -76,6 +76,14 @@ async function handleOrderPaid(pool, orderId) {
     [order.listing_id]
   );
 
+  // Create escrow hold
+  await pool.query(
+    `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'holding', NOW(), NOW() + INTERVAL '7 days')
+     ON CONFLICT (order_id) DO NOTHING`,
+    [order.id, order.seller_id, order.buyer_id, order.item_price, order.platform_fee, order.courier_fee || 0]
+  );
+
   // Auto-create TCG shipment for delivery orders
   if (order.delivery_method === 'delivery' && !order.shipment_id && process.env.TCG_API_KEY) {
     try {
@@ -491,4 +499,24 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
+async function issueYocoRefund(checkoutId, amountInCents) {
+  const res = await fetch(`${YOCO_BASE_URL}/refunds`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.YOCO_SECRET_KEY}`,
+    },
+    body: JSON.stringify({
+      checkoutId,
+      ...(amountInCents ? { amount: amountInCents } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Yoco refund failed (${res.status}): ${errText}`);
+  }
+  return res.json();
+}
+
+router.issueYocoRefund = issueYocoRefund;
 module.exports = router;

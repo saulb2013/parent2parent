@@ -235,7 +235,7 @@ router.post('/refresh-statuses', authenticateToken, async (req, res) => {
         else if ((cs.includes('in-transit') || cs.includes('out-for-delivery')) && order.status === 'paid') newStatus = 'shipped';
 
         if (newStatus) {
-          await pool.query('UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2', [newStatus, order.id]);
+          await pool.query('UPDATE orders SET status = $1, delivered_at = COALESCE(delivered_at, NOW()), updated_at = NOW() WHERE id = $2', [newStatus, order.id]);
           updated++;
           console.log(`[REFRESH] Order #${order.id}: ${order.status} → ${newStatus}`);
         }
@@ -285,7 +285,7 @@ router.get('/track/:orderId', authenticateToken, async (req, res) => {
 
     if (newOrderStatus) {
       await pool.query(
-        'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE orders SET status = $1, delivered_at = COALESCE(delivered_at, NOW()), updated_at = NOW() WHERE id = $2',
         [newOrderStatus, order.id]
       );
       console.log(`[TRACKING] Order #${order.id} status updated to ${newOrderStatus} (courier: ${courierStatus})`);

@@ -144,10 +144,13 @@ router.get('/sales', authenticateToken, async (req, res) => {
               o.item_price, o.platform_fee, o.courier_fee, o.total_price,
               l.title as listing_title,
               (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-              buyer.name as buyer_name
+              buyer.name as buyer_name,
+              eh.status as escrow_status, sp.status as payout_status, sp.paid_at as payout_paid_at
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users buyer ON o.buyer_id = buyer.id
+       LEFT JOIN escrow_holds eh ON eh.order_id = o.id
+       LEFT JOIN seller_payouts sp ON sp.order_id = o.id
        WHERE o.seller_id = $1 AND o.status != 'pending'
        ORDER BY o.created_at DESC`,
       [req.user.id]
@@ -167,11 +170,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT o.*, l.title as listing_title, l.description as listing_description,
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
-        seller.name as seller_name, buyer.name as buyer_name
+        seller.name as seller_name, buyer.name as buyer_name,
+        eh.id as escrow_id, eh.status as escrow_status, eh.release_due_at, eh.buyer_confirmed_at, eh.paused_at,
+        d.id as dispute_id, d.status as dispute_status, d.reason as dispute_reason, d.created_at as dispute_created_at
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
        JOIN users buyer ON o.buyer_id = buyer.id
+       LEFT JOIN escrow_holds eh ON eh.order_id = o.id
+       LEFT JOIN disputes d ON d.order_id = o.id AND d.status NOT IN ('resolved_no_refund', 'refunded')
        WHERE o.id = $1 AND (o.buyer_id = $2 OR o.seller_id = $2)`,
       [req.params.id, req.user.id]
     );
