@@ -354,7 +354,7 @@ function SoldOrderPanel({ order, tracking }) {
           <span>{formatPrice(order.item_price)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-600">Platform fee</span>
+          <span className="text-gray-600">Buyer protection fee</span>
           <span className="text-red-600">-{formatPrice(order.platform_fee)}</span>
         </div>
         <hr className="border-gray-100" />

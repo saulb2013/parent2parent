@@ -226,7 +226,7 @@ export default function Admin() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-2xl font-bold text-primary">{formatPrice(p.amount)}</p>
-                      <p className="text-xs text-gray-400 mt-1">Your fee: {formatPrice(p.platform_fee)}</p>
+                      <p className="text-xs text-gray-400 mt-1">Buyer protection: {formatPrice(p.platform_fee)}</p>
                     </div>
                   </div>
 
