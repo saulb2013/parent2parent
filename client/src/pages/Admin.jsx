@@ -4,11 +4,25 @@ import { formatPrice } from '../utils/formatPrice';
 
 function fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 function fmtDateTime(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return new Date(d).toLocaleString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function daysAgo(d) {
+  if (!d) return '';
+  const diff = Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'today';
+  if (diff === 1) return '1 day ago';
+  return `${diff} days ago`;
+}
+function daysUntil(d) {
+  if (!d) return '';
+  const diff = Math.ceil((new Date(d).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (diff <= 0) return 'now';
+  if (diff === 1) return 'in 1 day';
+  return `in ${diff} days`;
 }
 
 export default function Admin() {
@@ -49,7 +63,7 @@ export default function Admin() {
   }, [authorized, tab, payoutFilter]);
 
   const markPaid = async (id) => {
-    const adminNotes = prompt('Enter EFT reference number or bank note (e.g. "FNB ref 12345"):');
+    const adminNotes = prompt('Enter EFT reference (e.g. "FNB ref 12345"):');
     if (adminNotes === null) return;
     const res = await fetch(`/api/admin/payouts/${id}/mark-paid`, {
       method: 'POST',
@@ -64,11 +78,11 @@ export default function Admin() {
 
   const resolveDispute = async (id, resolution) => {
     const label = resolution === 'refund'
-      ? 'This will refund the buyer via Yoco. Add any notes:'
-      : 'This will release funds to the seller. Add any notes:';
+      ? 'This will refund the FULL amount to the buyer via Yoco. Add notes:'
+      : 'This will resume the escrow timer and release funds to the seller. Add notes:';
     const adminNotes = prompt(label);
     if (adminNotes === null) return;
-    if (resolution === 'refund' && !confirm('Are you sure? This will issue a Yoco refund to the buyer\'s card.')) return;
+    if (resolution === 'refund' && !confirm('CONFIRM: Issue a full Yoco refund to the buyer\'s card?')) return;
     const res = await fetch(`/api/admin/disputes/${id}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -77,7 +91,9 @@ export default function Admin() {
     });
     const data = await res.json();
     if (!res.ok) { alert(data.error); return; }
-    setDisputes(prev => prev.map(d => d.id === id ? data.dispute : d));
+    // Refresh disputes
+    fetch('/api/admin/disputes', { credentials: 'include' })
+      .then(r => r.json()).then(d => setDisputes(d.disputes || []));
   };
 
   if (loading) {
@@ -93,33 +109,36 @@ export default function Admin() {
     );
   }
 
+  const pendingPayoutCount = payoutFilter === 'pending' ? payouts.length : 0;
+  const activeDisputeCount = disputes.filter(d => ['open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status)).length;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="font-display text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-      <p className="text-sm text-gray-500 mb-8">Manage payouts, disputes, and escrow holds. All amounts exclude Yoco's processing fee (~2.6%).</p>
+      <p className="text-sm text-gray-500 mb-8">All amounts are what buyers paid. Yoco takes ~2.6% processing fee before it reaches your bank.</p>
 
       {/* Revenue Summary */}
       {revenue && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">P2P Revenue</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Your Revenue</p>
             <p className="text-2xl font-bold text-primary">{formatPrice(Number(revenue.total_revenue))}</p>
-            <p className="text-xs text-gray-400 mt-1">Your 5% platform fee</p>
+            <p className="text-xs text-gray-400 mt-1">5% platform fee earned</p>
           </div>
           <div className="card p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">In Escrow</p>
             <p className="text-2xl font-bold text-blue-600">{formatPrice(Number(revenue.holding_for_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">Held for 7-day protection</p>
+            <p className="text-xs text-gray-400 mt-1">Being held for 7 days</p>
           </div>
-          <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Owed to Sellers</p>
+          <div className="card p-4 border-orange-200">
+            <p className="text-xs text-orange-600 uppercase tracking-wider font-semibold mb-1">You Need to EFT</p>
             <p className="text-2xl font-bold text-orange-600">{formatPrice(Number(revenue.owed_to_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">EFT these to sellers</p>
+            <p className="text-xs text-gray-400 mt-1">Escrow released, sellers waiting</p>
           </div>
           <div className="card p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Paid to Sellers</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Already Paid Out</p>
             <p className="text-2xl font-bold text-green-600">{formatPrice(Number(revenue.paid_to_sellers))}</p>
-            <p className="text-xs text-gray-400 mt-1">Completed EFTs</p>
+            <p className="text-xs text-gray-400 mt-1">EFTs completed</p>
           </div>
         </div>
       )}
@@ -134,9 +153,12 @@ export default function Admin() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors relative ${tab === t.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
           >
             {t.label}
+            {t.key === 'disputes' && activeDisputeCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{activeDisputeCount}</span>
+            )}
           </button>
         ))}
       </div>
@@ -144,11 +166,6 @@ export default function Admin() {
       {/* ───── PAYOUTS TAB ───── */}
       {tab === 'payouts' && (
         <div>
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 text-sm text-blue-800">
-            <strong>How payouts work:</strong> When escrow releases (buyer confirms or 7 days pass), the seller appears here.
-            EFT the amount to their bank account, then click "Mark as Paid" and enter the EFT reference.
-          </div>
-
           <div className="flex gap-2 mb-4">
             {['pending', 'paid'].map(f => (
               <button key={f} onClick={() => setPayoutFilter(f)}
@@ -159,35 +176,55 @@ export default function Admin() {
           </div>
 
           {payouts.length === 0 ? (
-            <div className="card p-8 text-center text-gray-500">
-              {payoutFilter === 'pending' ? 'No pending payouts — all sellers have been paid' : 'No completed payouts yet'}
+            <div className="card p-8 text-center">
+              <p className="text-gray-500 font-medium">{payoutFilter === 'pending' ? 'No pending payouts' : 'No completed payouts yet'}</p>
+              <p className="text-xs text-gray-400 mt-1">{payoutFilter === 'pending' ? 'When a buyer\'s 7-day escrow expires or they confirm receipt, the seller\'s payout will appear here.' : 'Once you EFT a seller and mark it paid, it moves here.'}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {payouts.map(p => (
-                <div key={p.id} className="card p-5">
+                <div key={p.id} className={`card p-5 ${p.status === 'pending' ? 'border-l-4 border-l-orange-400' : ''}`}>
+                  {/* Step indicator */}
+                  {p.status === 'pending' && (
+                    <div className="bg-orange-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                      <p className="font-semibold text-orange-800 mb-1">Action required: EFT this seller</p>
+                      <ol className="text-orange-700 text-xs space-y-1 list-decimal list-inside">
+                        <li>Open your banking app</li>
+                        <li>EFT <strong>{formatPrice(p.amount)}</strong> to <strong>{p.seller_name}</strong> (get their bank details from them)</li>
+                        <li>Click "Mark as Paid" below and paste the EFT reference</li>
+                      </ol>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900">{p.listing_title}</p>
-                      <p className="text-sm text-gray-600 mt-1">Pay to: <strong>{p.seller_name}</strong></p>
-                      <p className="text-sm text-gray-500">{p.seller_email}</p>
-                      {p.seller_phone && <p className="text-sm text-gray-500">{p.seller_phone}</p>}
-                      <p className="text-xs text-gray-400 mt-2">Order #{p.order_id} — {fmtDate(p.created_at)}</p>
+                      <p className="font-semibold text-gray-900 text-lg">{p.listing_title}</p>
+                      <div className="mt-2 space-y-1">
+                        <p className="text-sm"><span className="text-gray-500">Pay to:</span> <strong>{p.seller_name}</strong></p>
+                        <p className="text-sm text-gray-500">{p.seller_email}</p>
+                        {p.seller_phone && <p className="text-sm text-gray-500">{p.seller_phone}</p>}
+                      </div>
+                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                        <span>Order #{p.order_id}</span>
+                        <span>Sold {fmtDate(p.created_at)}</span>
+                        {p.status === 'pending' && <span className="text-orange-600 font-medium">Waiting {daysAgo(p.created_at)}</span>}
+                      </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-2xl font-bold text-primary">{formatPrice(p.amount)}</p>
-                      <p className="text-xs text-gray-400 mt-1">P2P fee: {formatPrice(p.platform_fee)}</p>
+                      <p className="text-xs text-gray-400 mt-1">Your fee: {formatPrice(p.platform_fee)}</p>
                     </div>
                   </div>
+
                   {p.status === 'pending' && (
-                    <button onClick={() => markPaid(p.id)} className="btn-accent mt-4 w-full text-sm !py-2.5">
-                      Mark as Paid (EFT sent)
+                    <button onClick={() => markPaid(p.id)} className="btn-accent mt-4 w-full text-sm !py-3 font-semibold">
+                      I've Sent the EFT — Mark as Paid
                     </button>
                   )}
                   {p.status === 'paid' && (
-                    <div className="mt-3 bg-green-50 rounded-lg p-3 text-sm text-green-700">
-                      Paid on {fmtDate(p.paid_at)}
-                      {p.admin_notes && <span className="text-green-600"> — {p.admin_notes}</span>}
+                    <div className="mt-3 bg-green-50 border border-green-100 rounded-lg p-3">
+                      <p className="text-sm text-green-700 font-medium">Paid on {fmtDate(p.paid_at)}</p>
+                      {p.admin_notes && <p className="text-xs text-green-600 mt-1">Ref: {p.admin_notes}</p>}
                     </div>
                   )}
                 </div>
@@ -200,77 +237,110 @@ export default function Admin() {
       {/* ───── DISPUTES TAB ───── */}
       {tab === 'disputes' && (
         <div>
-          <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 mb-5 text-sm text-yellow-800">
-            <strong>How disputes work:</strong> Buyers can raise within 48hrs of delivery. Escrow pauses.
-            The buyer ships the item back, seller confirms, then you issue a Yoco refund or resolve without refund.
-            Disputes auto-escalate to you after 48hrs if unresolved.
-          </div>
-
           {disputes.length === 0 ? (
-            <div className="card p-8 text-center text-gray-500">No disputes — everything is running smoothly</div>
+            <div className="card p-8 text-center">
+              <p className="text-gray-500 font-medium">No disputes</p>
+              <p className="text-xs text-gray-400 mt-1">If a buyer reports a problem within 48 hours of delivery, it appears here. You'll mediate and decide whether to refund.</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {disputes.map(d => (
-                <div key={d.id} className={`card p-5 ${['open', 'admin_review'].includes(d.status) ? 'border-l-4 border-l-yellow-400' : ''}`}>
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div>
-                      <p className="font-semibold text-gray-900">{d.listing_title}</p>
-                      <p className="text-sm text-gray-600 mt-0.5">
-                        <span className="text-gray-500">Buyer:</span> {d.buyer_name} — <span className="text-gray-500">Seller:</span> {d.seller_name}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">Order #{d.order_id} — Opened {fmtDateTime(d.created_at)}</p>
+            <div className="space-y-4">
+              {disputes.map(d => {
+                const isActive = ['open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status);
+                const needsYourAction = ['return_received', 'admin_review'].includes(d.status);
+
+                return (
+                  <div key={d.id} className={`card p-5 ${needsYourAction ? 'border-l-4 border-l-red-400' : isActive ? 'border-l-4 border-l-yellow-400' : ''}`}>
+                    {/* What you need to do */}
+                    {needsYourAction && (
+                      <div className="bg-red-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-red-800 mb-1">Action required: Decide this dispute</p>
+                        {d.status === 'return_received' && (
+                          <p className="text-red-700 text-xs">The seller has received the returned item. Issue a full Yoco refund to the buyer, or resolve without refund if the claim was invalid.</p>
+                        )}
+                        {d.status === 'admin_review' && (
+                          <p className="text-red-700 text-xs">This dispute was auto-escalated after 48 hours with no resolution. Review and decide.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {d.status === 'open' && (
+                      <div className="bg-yellow-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-yellow-800 mb-1">Waiting: Buyer to ship the item back</p>
+                        <p className="text-yellow-700 text-xs">The buyer has 72 hours to ship the return. If they don't, this will auto-escalate to you {daysUntil(new Date(new Date(d.created_at).getTime() + 48 * 60 * 60 * 1000))}.</p>
+                      </div>
+                    )}
+
+                    {d.status === 'return_shipping' && (
+                      <div className="bg-blue-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-blue-800 mb-1">Waiting: Seller to confirm return received</p>
+                        <p className="text-blue-700 text-xs">The buyer has shipped the item back. Waiting for seller to confirm they got it.
+                          {d.return_tracking && <span className="block mt-1">Tracking: <strong>{d.return_tracking}</strong></span>}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <p className="font-semibold text-gray-900">{d.listing_title}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Buyer: <strong>{d.buyer_name}</strong> vs Seller: <strong>{d.seller_name}</strong>
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {d.total_price && <p className="font-bold">{formatPrice(d.total_price)}</p>}
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          d.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                          d.status === 'admin_review' ? 'bg-red-100 text-red-800' :
+                          d.status === 'return_shipping' ? 'bg-blue-100 text-blue-800' :
+                          d.status === 'return_received' ? 'bg-purple-100 text-purple-800' :
+                          d.status === 'refunded' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {d.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
                     </div>
-                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                      d.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                      d.status === 'admin_review' ? 'bg-red-100 text-red-800' :
-                      d.status === 'return_shipping' ? 'bg-blue-100 text-blue-800' :
-                      d.status === 'return_received' ? 'bg-purple-100 text-purple-800' :
-                      d.status === 'refunded' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {d.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
 
-                  <div className="bg-gray-50 rounded-lg p-3 text-sm mb-3">
-                    <p className="text-gray-700"><strong>Reason:</strong> {d.reason}</p>
-                    {d.description && <p className="text-gray-500 mt-1">{d.description}</p>}
-                  </div>
-
-                  {d.total_price && (
-                    <p className="text-xs text-gray-500 mb-3">
-                      Total paid: {formatPrice(d.total_price)} — Yoco checkout: <code className="text-xs bg-gray-100 px-1 rounded">{d.payment_reference || 'N/A'}</code>
-                    </p>
-                  )}
-
-                  {['open', 'return_received', 'admin_review'].includes(d.status) && (
-                    <div className="flex gap-2 pt-2 border-t border-gray-100">
-                      <button onClick={() => resolveDispute(d.id, 'refund')}
-                        className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                        Issue Full Refund
-                      </button>
-                      <button onClick={() => resolveDispute(d.id, 'no_refund')}
-                        className="text-sm btn-outline !py-2 !px-4">
-                        Resolve — No Refund
-                      </button>
+                    <div className="bg-gray-50 rounded-lg p-3 text-sm mb-3">
+                      <p className="text-gray-700"><strong>Reason:</strong> {d.reason}</p>
+                      {d.description && <p className="text-gray-500 mt-1">{d.description}</p>}
                     </div>
-                  )}
 
-                  {d.status === 'return_shipping' && (
-                    <p className="text-sm text-blue-700 bg-blue-50 rounded-lg p-3">
-                      Buyer has shipped the return. Waiting for seller to confirm receipt.
-                      {d.return_tracking && <span className="block text-xs mt-1">Tracking: {d.return_tracking}</span>}
-                    </p>
-                  )}
+                    <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
+                      <span>Order #{d.order_id}</span>
+                      <span>Opened {fmtDateTime(d.created_at)} ({daysAgo(d.created_at)})</span>
+                      {d.payment_reference && <span>Yoco: <code className="bg-gray-100 px-1 rounded">{d.payment_reference}</code></span>}
+                    </div>
 
-                  {d.status === 'refunded' && d.resolved_at && (
-                    <p className="text-sm text-green-700 bg-green-50 rounded-lg p-3">
-                      Refunded on {fmtDate(d.resolved_at)}
-                      {d.admin_notes && <span className="block text-xs mt-1">{d.admin_notes}</span>}
-                    </p>
-                  )}
-                </div>
-              ))}
+                    {isActive && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                        <button onClick={() => resolveDispute(d.id, 'refund')}
+                          className="text-sm bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium">
+                          Issue Full Refund
+                        </button>
+                        <button onClick={() => resolveDispute(d.id, 'no_refund')}
+                          className="text-sm btn-outline !py-2.5 !px-5">
+                          No Refund — Release to Seller
+                        </button>
+                      </div>
+                    )}
+
+                    {d.status === 'refunded' && (
+                      <div className="bg-green-50 border border-green-100 rounded-lg p-3 text-sm text-green-700">
+                        Refunded on {fmtDate(d.resolved_at)}
+                        {d.admin_notes && <span className="block text-xs mt-1">{d.admin_notes}</span>}
+                      </div>
+                    )}
+
+                    {d.status === 'resolved_no_refund' && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+                        Resolved without refund on {fmtDate(d.resolved_at)}
+                        {d.admin_notes && <span className="block text-xs mt-1">{d.admin_notes}</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -280,15 +350,15 @@ export default function Admin() {
       {tab === 'escrow' && (
         <div>
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 text-sm text-gray-700">
-            <strong>How escrow works:</strong> When a buyer pays, funds are held for 7 days.
-            If the buyer confirms receipt early, funds release immediately.
-            If a dispute is opened, the timer pauses. Released escrows create a seller payout in the Payouts tab.
+            <strong>What is this?</strong> Every buyer payment is held for 7 days before being released to the seller.
+            This protects buyers if something goes wrong. You don't need to do anything here — escrows release automatically.
+            When they do, the seller appears in the <strong>Payouts</strong> tab for you to EFT.
           </div>
 
           {escrows.summary && (
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">Holding: {escrows.summary.holding || 0}</span>
-              <span className="px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">Paused: {escrows.summary.paused || 0}</span>
+              <span className="px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">Paused (dispute): {escrows.summary.paused || 0}</span>
               <span className="px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-xs font-medium">Released: {escrows.summary.released || 0}</span>
               <span className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">Refunded: {escrows.summary.refunded || 0}</span>
             </div>
@@ -296,18 +366,21 @@ export default function Admin() {
 
           <div className="space-y-3">
             {(escrows.holds || []).length === 0 ? (
-              <div className="card p-8 text-center text-gray-500">No escrow holds</div>
+              <div className="card p-8 text-center">
+                <p className="text-gray-500 font-medium">No escrow holds</p>
+                <p className="text-xs text-gray-400 mt-1">When a buyer makes a purchase, their payment hold appears here.</p>
+              </div>
             ) : (escrows.holds || []).map(h => (
-              <div key={h.id} className="card p-4">
+              <div key={h.id} className={`card p-4 ${h.status === 'holding' ? 'border-l-4 border-l-blue-400' : h.status === 'paused' ? 'border-l-4 border-l-yellow-400' : ''}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-semibold text-gray-900">{h.listing_title}</p>
-                    <p className="text-sm text-gray-500">Seller: {h.seller_name} — Buyer: {h.buyer_name}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Created {fmtDate(h.created_at)}
-                      {h.released_at && <span> — Released {fmtDate(h.released_at)}</span>}
-                      {h.buyer_confirmed_at && <span> (buyer confirmed)</span>}
-                    </p>
+                    <p className="text-sm text-gray-500 mt-0.5">Seller: {h.seller_name} — Buyer: {h.buyer_name}</p>
+                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
+                      <span>Paid {fmtDate(h.hold_started_at)}</span>
+                      {h.released_at && <span>Released {fmtDate(h.released_at)}</span>}
+                      {h.buyer_confirmed_at && <span className="text-green-600">Buyer confirmed early</span>}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold text-lg">{formatPrice(h.item_amount)}</p>
@@ -323,14 +396,16 @@ export default function Admin() {
                     {h.courier_fee > 0 && <p className="text-xs text-gray-400">Courier: {formatPrice(h.courier_fee)}</p>}
                   </div>
                 </div>
+
                 {h.status === 'holding' && h.release_due_at && (
-                  <div className="mt-2 bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
-                    Auto-releases: {fmtDateTime(h.release_due_at)}
+                  <div className="mt-3 bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
+                    Releases automatically on <strong>{fmtDateTime(h.release_due_at)}</strong> ({daysUntil(h.release_due_at)})
+                    — then the seller will appear in the Payouts tab for you to EFT.
                   </div>
                 )}
                 {h.status === 'paused' && (
-                  <div className="mt-2 bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700">
-                    Timer paused — dispute in progress
+                  <div className="mt-3 bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700">
+                    Timer paused — check the Disputes tab for details.
                   </div>
                 )}
               </div>
