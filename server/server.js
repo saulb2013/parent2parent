@@ -95,6 +95,22 @@ async function runMigrations() {
     await pool.query("UPDATE users SET is_admin = TRUE WHERE email = 'saul.bloch13@gmail.com'");
   } catch {}
 
+  // One-time cleanup: remove escrow/payout rows for test orders (keep only "Breast Pads")
+  try {
+    await pool.query(
+      `DELETE FROM seller_payouts WHERE order_id IN (
+        SELECT o.id FROM orders o JOIN listings l ON o.listing_id = l.id
+        WHERE l.title != 'Breast Pads'
+      )`
+    );
+    await pool.query(
+      `DELETE FROM escrow_holds WHERE order_id IN (
+        SELECT o.id FROM orders o JOIN listings l ON o.listing_id = l.id
+        WHERE l.title != 'Breast Pads'
+      )`
+    );
+  } catch {}
+
   // Backfill escrow rows for orders that were paid before the escrow system existed
   try {
     const { rowCount } = await pool.query(

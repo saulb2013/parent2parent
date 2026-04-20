@@ -23,7 +23,7 @@ router.get('/payouts', authenticateToken, requireAdmin, async (req, res) => {
        JOIN orders o ON sp.order_id = o.id
        JOIN listings l ON o.listing_id = l.id
        WHERE sp.status = $1
-       ORDER BY sp.created_at ASC`,
+       ORDER BY sp.created_at DESC`,
       [status]
     );
     res.json({ payouts: rows });
