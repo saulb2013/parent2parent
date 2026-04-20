@@ -116,29 +116,55 @@ async function runMigrations() {
     console.error('[STARTUP] Test cleanup failed:', err.message);
   }
 
-  // Backfill escrow rows for orders that were paid before the escrow system existed
+  // Backfill escrow rows for orders that were paid before the escrow system existed.
+  // Fix: orders still in transit (paid/shipped) get 'holding' with a proper 7-day timer.
+  // Only delivered orders get 'released'.
   try {
-    const { rowCount } = await pool.query(
+    // First, delete any incorrectly backfilled escrow/payout rows so we can redo them properly
+    await pool.query(
+      `DELETE FROM seller_payouts WHERE escrow_id IN (
+        SELECT eh.id FROM escrow_holds eh JOIN orders o ON eh.order_id = o.id
+        WHERE o.status IN ('paid', 'shipped')
+      )`
+    );
+    await pool.query(
+      `DELETE FROM escrow_holds WHERE order_id IN (
+        SELECT id FROM orders WHERE status IN ('paid', 'shipped')
+      )`
+    );
+
+    // In-transit orders: holding with 7-day timer from when they were paid
+    await pool.query(
       `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
        SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
-              'released', o.created_at, o.created_at + INTERVAL '7 days'
+              'holding', o.created_at, o.created_at + INTERVAL '7 days'
        FROM orders o
-       WHERE o.status IN ('paid', 'shipped', 'delivered')
+       WHERE o.status IN ('paid', 'shipped')
          AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
        ON CONFLICT (order_id) DO NOTHING`
     );
-    if (rowCount > 0) {
-      // Also create payout rows for the backfilled escrows
-      await pool.query(
-        `INSERT INTO seller_payouts (seller_id, order_id, escrow_id, amount, platform_fee, status)
-         SELECT eh.seller_id, eh.order_id, eh.id, eh.item_amount, eh.platform_fee, 'pending'
-         FROM escrow_holds eh
-         WHERE eh.status = 'released'
-           AND NOT EXISTS (SELECT 1 FROM seller_payouts sp WHERE sp.order_id = eh.order_id)
-         ON CONFLICT (order_id) DO NOTHING`
-      );
-      console.log(`[STARTUP] Backfilled ${rowCount} escrow holds for existing orders`);
-    }
+
+    // Delivered orders: released (buyer already got it)
+    const { rowCount } = await pool.query(
+      `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at, released_at)
+       SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
+              'released', o.created_at, o.created_at + INTERVAL '7 days', COALESCE(o.delivered_at, NOW())
+       FROM orders o
+       WHERE o.status = 'delivered'
+         AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
+       ON CONFLICT (order_id) DO NOTHING`
+    );
+
+    // Create payout rows only for released escrows
+    await pool.query(
+      `INSERT INTO seller_payouts (seller_id, order_id, escrow_id, amount, platform_fee, status)
+       SELECT eh.seller_id, eh.order_id, eh.id, eh.item_amount, eh.platform_fee, 'pending'
+       FROM escrow_holds eh
+       WHERE eh.status = 'released'
+         AND NOT EXISTS (SELECT 1 FROM seller_payouts sp WHERE sp.order_id = eh.order_id)
+       ON CONFLICT (order_id) DO NOTHING`
+    );
+    console.log('[STARTUP] Escrow backfill checked');
   } catch (err) {
     console.error('[STARTUP] Escrow backfill failed:', err.message);
   }
