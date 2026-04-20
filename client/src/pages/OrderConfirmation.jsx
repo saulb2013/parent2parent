@@ -239,13 +239,22 @@ export default function OrderConfirmation() {
             {order.escrow_status === 'holding' && (
               <>
                 <p className="text-sm mt-2">
-                  {isBuyer
-                    ? 'Your payment is held securely. Once you confirm receipt or after 7 days, funds will be released to the seller.'
-                    : 'The buyer\'s payment is held securely. Funds will be released once the buyer confirms receipt or after the hold period.'}
+                  {order.status === 'delivered'
+                    ? (isBuyer
+                        ? 'Your item has been delivered. Confirm you\'re happy to release payment, or raise a problem within 48 hours.'
+                        : 'The item has been delivered. Payment will release once the buyer confirms or after 7 days.')
+                    : (isBuyer
+                        ? 'Your payment is held securely while your item is on its way. The 7-day protection period starts once it\'s delivered.'
+                        : 'The buyer\'s payment is held securely until their item is delivered and the protection period ends.')}
                 </p>
-                {order.release_due_at && (
+                {order.status === 'delivered' && order.release_due_at && (
                   <p className="text-xs mt-2 opacity-75">
                     Auto-release: {timeRemaining(order.release_due_at)}
+                  </p>
+                )}
+                {['paid', 'shipped'].includes(order.status) && (
+                  <p className="text-xs mt-2 opacity-75">
+                    Waiting for delivery — 7-day countdown starts then
                   </p>
                 )}
               </>

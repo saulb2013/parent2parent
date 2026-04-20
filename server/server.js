@@ -133,22 +133,22 @@ async function runMigrations() {
       )`
     );
 
-    // In-transit orders: holding with 7-day timer from when they were paid
+    // In-transit orders: holding, timer doesn't start until delivery
     await pool.query(
       `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
        SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
-              'holding', o.created_at, o.created_at + INTERVAL '7 days'
+              'holding', o.created_at, o.created_at + INTERVAL '90 days'
        FROM orders o
        WHERE o.status IN ('paid', 'shipped')
          AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
        ON CONFLICT (order_id) DO NOTHING`
     );
 
-    // Delivered orders: released (buyer already got it)
-    const { rowCount } = await pool.query(
-      `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at, released_at)
+    // Delivered orders: holding with 7-day timer from delivery date
+    await pool.query(
+      `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
        SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
-              'released', o.created_at, o.created_at + INTERVAL '7 days', COALESCE(o.delivered_at, NOW())
+              'holding', o.created_at, COALESCE(o.delivered_at, NOW()) + INTERVAL '7 days'
        FROM orders o
        WHERE o.status = 'delivered'
          AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
@@ -164,6 +164,14 @@ async function runMigrations() {
          AND NOT EXISTS (SELECT 1 FROM seller_payouts sp WHERE sp.order_id = eh.order_id)
        ON CONFLICT (order_id) DO NOTHING`
     );
+    // Fix any existing escrows for undelivered orders that had incorrect release dates
+    await pool.query(
+      `UPDATE escrow_holds SET release_due_at = hold_started_at + INTERVAL '90 days', updated_at = NOW()
+       WHERE status = 'holding' AND order_id IN (
+         SELECT id FROM orders WHERE status IN ('paid', 'shipped')
+       )`
+    );
+
     console.log('[STARTUP] Escrow backfill checked');
   } catch (err) {
     console.error('[STARTUP] Escrow backfill failed:', err.message);

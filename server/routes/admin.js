@@ -174,7 +174,8 @@ router.get('/escrow', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const pool = req.app.get('db');
     const { rows } = await pool.query(
-      `SELECT eh.*, l.title as listing_title, seller.name as seller_name, buyer.name as buyer_name
+      `SELECT eh.*, l.title as listing_title, seller.name as seller_name, buyer.name as buyer_name,
+              o.status as order_status, o.delivered_at
        FROM escrow_holds eh
        JOIN orders o ON eh.order_id = o.id
        JOIN listings l ON o.listing_id = l.id

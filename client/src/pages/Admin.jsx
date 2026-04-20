@@ -397,10 +397,13 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {h.status === 'holding' && h.release_due_at && (
+                {h.status === 'holding' && (
                   <div className="mt-3 bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
-                    Releases automatically on <strong>{fmtDateTime(h.release_due_at)}</strong> ({daysUntil(h.release_due_at)})
-                    — then the seller will appear in the Payouts tab for you to EFT.
+                    {h.order_status === 'delivered' || h.delivered_at ? (
+                      <>Releases automatically on <strong>{fmtDateTime(h.release_due_at)}</strong> ({daysUntil(h.release_due_at)}) — then the seller will appear in the Payouts tab for you to EFT.</>
+                    ) : (
+                      <>Waiting for delivery. The 7-day countdown starts once The Courier Guy delivers the item.</>
+                    )}
                   </div>
                 )}
                 {h.status === 'paused' && (
