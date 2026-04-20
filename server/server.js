@@ -95,21 +95,26 @@ async function runMigrations() {
     await pool.query("UPDATE users SET is_admin = TRUE WHERE email = 'saul.bloch13@gmail.com'");
   } catch {}
 
-  // One-time cleanup: remove escrow/payout rows for test orders (keep only "Breast Pads")
+  // One-time cleanup: remove ALL test orders except "Breast Pads"
+  // Order: disputes → seller_payouts → escrow_holds → orders, then re-activate listings
   try {
+    const testOrderFilter = `SELECT o.id FROM orders o JOIN listings l ON o.listing_id = l.id WHERE l.title != 'Breast Pads'`;
+    await pool.query(`DELETE FROM disputes WHERE order_id IN (${testOrderFilter})`);
+    await pool.query(`DELETE FROM seller_payouts WHERE order_id IN (${testOrderFilter})`);
+    await pool.query(`DELETE FROM escrow_holds WHERE order_id IN (${testOrderFilter})`);
+    // Re-activate listings that were marked 'sold' by test orders
     await pool.query(
-      `DELETE FROM seller_payouts WHERE order_id IN (
-        SELECT o.id FROM orders o JOIN listings l ON o.listing_id = l.id
-        WHERE l.title != 'Breast Pads'
-      )`
+      `UPDATE listings SET status = 'active', updated_at = NOW()
+       WHERE status = 'sold' AND id IN (
+         SELECT listing_id FROM orders o JOIN listings l ON o.listing_id = l.id
+         WHERE l.title != 'Breast Pads'
+       )`
     );
-    await pool.query(
-      `DELETE FROM escrow_holds WHERE order_id IN (
-        SELECT o.id FROM orders o JOIN listings l ON o.listing_id = l.id
-        WHERE l.title != 'Breast Pads'
-      )`
-    );
-  } catch {}
+    const { rowCount } = await pool.query(`DELETE FROM orders WHERE id IN (${testOrderFilter})`);
+    if (rowCount > 0) console.log(`[STARTUP] Cleaned up ${rowCount} test orders`);
+  } catch (err) {
+    console.error('[STARTUP] Test cleanup failed:', err.message);
+  }
 
   // Backfill escrow rows for orders that were paid before the escrow system existed
   try {
