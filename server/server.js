@@ -93,6 +93,7 @@ async function runMigrations() {
   // Set admin user
   try {
     await pool.query("UPDATE users SET is_admin = TRUE WHERE email = 'saul.bloch13@gmail.com'");
+    await pool.query("UPDATE users SET is_admin = TRUE WHERE name = 'Dean Cohen'");
   } catch {}
 
   // One-time cleanup: remove ALL test orders except "Breast Pads"
