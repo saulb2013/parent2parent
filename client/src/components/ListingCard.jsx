@@ -41,7 +41,7 @@ export default function ListingCard({ listing }) {
             ) : null}
             <span className="truncate max-w-[100px]">{listing.seller_name}</span>
           </div>
-          <span>{listing.city}, {listing.province?.split(' ').map(w => w[0]).join('')}</span>
+          <span>{listing.province}</span>
         </div>
         <p className="text-xs text-gray-400 mt-2">{timeAgo}</p>
       </div>

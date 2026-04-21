@@ -172,7 +172,7 @@ export default function ListingDetail() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {listing.city}, {listing.province}
+              {listing.province}
             </span>
             <span>{listing.views} views</span>
           </div>
@@ -199,7 +199,7 @@ export default function ListingDetail() {
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-800">{listing.seller_name}</h4>
                     <p className="text-xs text-gray-500">
-                      {listing.seller_city}, {listing.seller_province} &middot; Member since {new Date(listing.seller_since).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}
+                      {listing.seller_province} &middot; Member since {new Date(listing.seller_since).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <Link to={`/profile/${listing.seller_id}`} className="text-sm text-primary font-medium hover:underline">

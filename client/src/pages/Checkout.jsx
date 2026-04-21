@@ -612,7 +612,7 @@ export default function Checkout() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900">{listing.title}</h3>
                 <p className="text-sm text-gray-500 capitalize">{listing.condition?.replace('_', ' ')}</p>
-                <p className="text-sm text-gray-500">{listing.city}, {listing.province}</p>
+                <p className="text-sm text-gray-500">{listing.province}</p>
               </div>
             </div>
 
@@ -678,7 +678,7 @@ export default function Checkout() {
               />
               <div>
                 <p className="text-sm font-medium text-gray-800">Sold by {listing.seller_name}</p>
-                <p className="text-xs text-gray-500">{listing.seller_city}, {listing.seller_province}</p>
+                <p className="text-xs text-gray-500">{listing.seller_province}</p>
               </div>
             </div>
           </div>
