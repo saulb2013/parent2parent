@@ -41,9 +41,9 @@ export default function Footer() {
 
           {/* Sell */}
           <div>
-            <h4 className="font-display text-sm font-semibold mb-4 text-accent">Start Selling</h4>
+            <h4 className="font-display text-sm font-semibold mb-4 text-accent">Sell on Parent2Parent</h4>
             <p className="text-sm text-green-200 mb-4">
-              Turn outgrown items into cash. List in minutes, connect with local parents.
+              Give pre-loved items a second home. Free to list, delivery handled, payments secure.
             </p>
             <Link to="/sell" className="btn-accent text-sm !py-2 !px-4 inline-block">
               List an Item
