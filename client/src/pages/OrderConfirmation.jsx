@@ -374,8 +374,8 @@ export default function OrderConfirmation() {
           </div>
         )}
 
-        {/* Tracking panel — delivery orders only */}
-        {isDelivery && (
+        {/* Tracking panel — delivery orders only, hide once delivered */}
+        {isDelivery && order.status !== 'delivered' && (
           <div className="border border-gray-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Delivery tracking</p>
