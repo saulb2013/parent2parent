@@ -18,7 +18,7 @@ const conditions = [
 
 export default function EditListing() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -35,6 +35,7 @@ export default function EditListing() {
   });
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { navigate('/login'); return; }
 
     Promise.all([
@@ -60,7 +61,7 @@ export default function EditListing() {
       setCategories(catData.categories);
       setLoading(false);
     });
-  }, [id, user]);
+  }, [id, user, authLoading]);
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

@@ -49,9 +49,9 @@ export default function CreateListing() {
   });
 
   useEffect(() => {
-    if (!user) navigate('/login');
+    if (!authLoading && !user) navigate('/login');
     fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories));
-  }, [user]);
+  }, [user, authLoading]);
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
