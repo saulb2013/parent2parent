@@ -19,7 +19,7 @@ export default function RoleSelect() {
       });
       if (!res.ok) throw new Error('Failed to set role');
       await refreshUser();
-      navigate('/');
+      navigate(role === 'buyer' ? '/browse' : '/sell');
     } catch (err) {
       console.error(err);
       setLoading(false);

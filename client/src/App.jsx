@@ -28,9 +28,14 @@ function Layout({ children }) {
   const { user, loading } = useAuth();
   const hideChrome = location.pathname === '/welcome';
 
-  // Redirect logged-in users without a role to /welcome (skip if already there or still loading)
+  // Redirect logged-in users without a role to /welcome
   if (!loading && user && !user.primary_role && !hideChrome) {
     return <Navigate to="/welcome" replace />;
+  }
+
+  // Redirect logged-in users from generic home to their role-specific page
+  if (!loading && user && user.primary_role && location.pathname === '/') {
+    return <Navigate to={user.primary_role === 'seller' ? '/sell' : '/browse'} replace />;
   }
 
   return (
