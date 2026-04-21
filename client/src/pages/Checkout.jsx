@@ -620,49 +620,51 @@ export default function Checkout() {
 
             {/* Price Breakdown */}
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600 flex items-center gap-1.5">
-                  Item price
-                  <span className="group relative">
-                    <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeWidth="2" d="M12 16v-4m0-4h.01"/></svg>
-                    <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-2.5 z-50 shadow-lg">The seller's listed price. 100% goes to the seller after the protection period.</span>
-                  </span>
-                </span>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Item price</span>
                 <span className="font-medium">{formatPrice(itemPrice)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 flex items-center gap-1.5">
-                  Buyer protection
-                  <span className="group relative">
-                    <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeWidth="2" d="M12 16v-4m0-4h.01"/></svg>
-                    <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white text-xs rounded-lg p-2.5 z-50 shadow-lg">Your payment is held securely for 7 days after delivery. If something's wrong, you're covered with a full refund — no questions asked within 48 hours.</span>
-                  </span>
-                </span>
-                <span className="font-medium">
-                  {ratesLoading ? '...' : platformFee != null ? formatPrice(platformFee) : <span className="text-gray-400 text-xs italic">Select delivery</span>}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Buyer protection</span>
+                <span className="font-medium text-right">
+                  {ratesLoading
+                    ? <span className="text-gray-400">...</span>
+                    : platformFee != null
+                      ? formatPrice(platformFee)
+                      : <span className="text-gray-300">--</span>
+                  }
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 flex items-center gap-1.5">
-                  Courier{selectedRate ? ` (${selectedRate.service})` : ''}
-                  <span className="group relative">
-                    <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeWidth="2" d="M12 16v-4m0-4h.01"/></svg>
-                    <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-gray-900 text-white text-xs rounded-lg p-2.5 z-50 shadow-lg">Collected from the seller and delivered to your door by The Courier Guy. Includes tracking and insurance.</span>
-                  </span>
-                </span>
-                <span className="font-medium">
-                  {ratesLoading ? '...' : selectedRate ? formatPrice(courierFee) : <span className="text-gray-400 text-xs italic">Add address</span>}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Courier{selectedRate ? ` (${selectedRate.service})` : ''}</span>
+                <span className="font-medium text-right">
+                  {ratesLoading
+                    ? <span className="text-gray-400">...</span>
+                    : selectedRate
+                      ? formatPrice(courierFee)
+                      : <span className="text-gray-300">--</span>
+                  }
                 </span>
               </div>
               <hr className="border-border" />
-              <div className="flex justify-between text-lg font-bold">
+              <div className="flex items-center justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-primary">{selectedRate ? formatPrice(totalPrice) : <span className="text-gray-400 text-base">—</span>}</span>
+                <span className="text-primary">{totalPrice != null ? formatPrice(totalPrice) : <span className="text-gray-300 font-normal text-base">--</span>}</span>
               </div>
+              {!selectedRate && !ratesLoading && (
+                <p className="text-xs text-gray-400 text-center">Add your delivery address to see final pricing</p>
+              )}
               {selectedRate && (selectedRate.deliveryDateTo || selectedRate.deliveryDateFrom) && (
                 <p className="text-xs text-gray-500">
                   Est. delivery: {new Date(selectedRate.deliveryDateTo || selectedRate.deliveryDateFrom).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </p>
+              )}
+              {platformFee != null && (
+                <div className="bg-green-50 rounded-lg px-3 py-2.5 mt-3">
+                  <p className="text-xs text-green-800 leading-relaxed">
+                    <strong>Buyer protection included.</strong> Your payment is held securely for 7 days after delivery. Full refund if something is wrong.
+                  </p>
+                </div>
               )}
             </div>
 
