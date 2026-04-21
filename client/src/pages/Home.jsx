@@ -130,9 +130,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: '1', icon: '📸', title: 'List Your Item', desc: 'Snap a few photos, add a description and price. Your listing goes live in minutes.' },
-              { step: '2', icon: '💬', title: 'Connect with Parents', desc: 'Interested buyers check out through the app. Secure payments, clear condition standards, and in-app updates every step of the way.' },
-              { step: '3', icon: '🤝', title: 'Make the Sale', desc: 'Meet up, inspect the item, and complete the transaction. Simple, safe, and local.' },
+              { step: '1', icon: '🛒', title: 'Find or List', desc: 'Browse pre-loved items from parents near you, or list something your child has outgrown. It takes less than 3 minutes.' },
+              { step: '2', icon: '🔒', title: 'Pay Securely', desc: 'Buyers pay by card through Yoco. Your money is held safely until you receive the item and confirm you are happy.' },
+              { step: '3', icon: '🚚', title: 'Delivered to Your Door', desc: 'The Courier Guy collects from the seller and delivers to you with full tracking. No meetups, no awkward handovers.' },
             ].map(item => (
               <div key={item.step} className="text-center">
                 <div className="w-16 h-16 bg-badge rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
