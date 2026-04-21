@@ -272,9 +272,10 @@ export default function Checkout() {
   }
 
   const itemPrice = listing.price;
-  const courierFee = deliveryMethod === 'delivery' && selectedRate ? Math.round(selectedRate.price * 100) : 0;
-  const platformFee = calcBuyerProtectionFee(itemPrice, courierFee);
-  const totalPrice = itemPrice + platformFee + courierFee;
+  const hasCourierRate = deliveryMethod === 'delivery' && selectedRate && !ratesLoading;
+  const courierFee = hasCourierRate ? Math.round(selectedRate.price * 100) : 0;
+  const platformFee = hasCourierRate ? calcBuyerProtectionFee(itemPrice, courierFee) : null;
+  const totalPrice = hasCourierRate ? itemPrice + platformFee + courierFee : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -588,7 +589,7 @@ export default function Checkout() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Pay {formatPrice(totalPrice)}
+                    Pay {totalPrice != null ? formatPrice(totalPrice) : '...'}
                   </>
                 )}
               </button>
@@ -637,7 +638,9 @@ export default function Checkout() {
                     <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white text-xs rounded-lg p-2.5 z-50 shadow-lg">Your payment is held securely for 7 days after delivery. If something's wrong, you're covered with a full refund — no questions asked within 48 hours.</span>
                   </span>
                 </span>
-                <span className="font-medium">{formatPrice(platformFee)}</span>
+                <span className="font-medium">
+                  {ratesLoading ? '...' : platformFee != null ? formatPrice(platformFee) : <span className="text-gray-400 text-xs italic">Select delivery</span>}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 flex items-center gap-1.5">
