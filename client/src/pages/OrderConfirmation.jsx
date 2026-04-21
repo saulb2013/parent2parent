@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { formatPrice } from '../utils/formatPrice';
+import { formatPrice, firstName } from '../utils/formatPrice';
 import { tcgTrackingUrl } from '../utils/tracking';
 import OrderStepper from '../components/OrderStepper';
 
@@ -205,7 +205,7 @@ export default function OrderConfirmation() {
           )}
           <div>
             <Link to={`/listings/${order.listing_id}`} className="font-medium text-gray-900 hover:text-primary">{order.listing_title}</Link>
-            <p className="text-sm text-gray-500 mt-1">{isBuyer ? `Sold by ${order.seller_name}` : `Bought by ${order.buyer_name}`}</p>
+            <p className="text-sm text-gray-500 mt-1">{isBuyer ? `Sold by ${firstName(order.seller_name)}` : `Bought by ${firstName(order.buyer_name)}`}</p>
           </div>
         </div>
 

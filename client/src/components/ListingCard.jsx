@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { formatPrice } from '../utils/formatPrice';
+import { formatPrice, firstName } from '../utils/formatPrice';
 import Badge from './Badge';
 import { AGE_STAGE_LABELS } from '../constants/ageStages';
 
@@ -39,7 +39,7 @@ export default function ListingCard({ listing }) {
             {listing.seller_avatar ? (
               <img src={listing.seller_avatar} alt="" className="w-5 h-5 rounded-full" />
             ) : null}
-            <span className="truncate max-w-[100px]">{listing.seller_name}</span>
+            <span className="truncate max-w-[100px]">{firstName(listing.seller_name)}</span>
           </div>
           <span>{listing.province}</span>
         </div>

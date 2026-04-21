@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { formatPrice } from '../utils/formatPrice';
+import { formatPrice, firstName } from '../utils/formatPrice';
 
 const PLATFORM_FEE_PERCENT = 5;
 const YOCO_RATE = 0.0299; // 2.6% + VAT
@@ -673,11 +673,11 @@ export default function Checkout() {
             <div className="flex items-center gap-3">
               <img
                 src={listing.seller_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${listing.seller_id}`}
-                alt={listing.seller_name}
+                alt={firstName(listing.seller_name)}
                 className="w-10 h-10 rounded-full bg-gray-100"
               />
               <div>
-                <p className="text-sm font-medium text-gray-800">Sold by {listing.seller_name}</p>
+                <p className="text-sm font-medium text-gray-800">Sold by {firstName(listing.seller_name)}</p>
                 <p className="text-xs text-gray-500">{listing.seller_province}</p>
               </div>
             </div>

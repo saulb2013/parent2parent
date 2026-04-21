@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { formatPrice } from '../utils/formatPrice';
+import { formatPrice, firstName } from '../utils/formatPrice';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import ListingCard from '../components/ListingCard';
@@ -193,11 +193,11 @@ export default function ListingDetail() {
                 <div className="flex items-center gap-4">
                   <img
                     src={listing.seller_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${listing.seller_id}`}
-                    alt={listing.seller_name}
+                    alt={firstName(listing.seller_name)}
                     className="w-14 h-14 rounded-full bg-gray-100"
                   />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-800">{listing.seller_name}</h4>
+                    <h4 className="font-semibold text-gray-800">{firstName(listing.seller_name)}</h4>
                     <p className="text-xs text-gray-500">
                       {listing.seller_province} &middot; Member since {new Date(listing.seller_since).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}
                     </p>
@@ -301,7 +301,7 @@ function SoldOrderPanel({ order, tracking }) {
       {/* Buyer */}
       <div className="border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Buyer</p>
-        <p className="font-medium text-gray-900">{order.buyer_name}</p>
+        <p className="font-medium text-gray-900">{firstName(order.buyer_name)}</p>
       </div>
 
       {/* Delivery tracking */}

@@ -11,3 +11,7 @@ export function formatPriceInput(cents) {
 export function parsePriceInput(rands) {
   return Math.round(parseFloat(rands) * 100);
 }
+
+export function firstName(fullName) {
+  return (fullName || '').split(' ')[0];
+}

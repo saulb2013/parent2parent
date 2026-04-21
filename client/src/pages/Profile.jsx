@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
-import { formatPrice } from '../utils/formatPrice';
+import { formatPrice, firstName } from '../utils/formatPrice';
 import OrderStepper from '../components/OrderStepper';
 import { tcgTrackingUrl } from '../utils/tracking';
 
@@ -628,7 +628,7 @@ export default function Profile() {
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
                           <p className="text-sm text-gray-500">
-                            From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            From {firstName(order.seller_name)} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
                         <div className="text-right shrink-0 flex flex-col items-end gap-2">
@@ -746,7 +746,7 @@ export default function Profile() {
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 truncate">{order.listing_title}</h3>
                             <p className="text-sm text-gray-500">
-                              Bought by {order.buyer_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                              Bought by {firstName(order.buyer_name)} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
                             </p>
                           </div>
                           <div className="text-right shrink-0">
