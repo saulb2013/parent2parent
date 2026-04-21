@@ -58,6 +58,7 @@ export default function OrderConfirmation() {
   const [loading, setLoading] = useState(true);
   const [tracking, setTracking] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const [showConfirmReceipt, setShowConfirmReceipt] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDesc, setDisputeDesc] = useState('');
@@ -83,7 +84,7 @@ export default function OrderConfirmation() {
   useEffect(() => { fetchOrder(); }, [id]);
 
   const handleConfirmReceipt = async () => {
-    if (!confirm('Confirm you received this item and are happy with it? This will release the payment to the seller.')) return;
+    setShowConfirmReceipt(false);
     setConfirming(true);
     try {
       const res = await fetch('/api/escrow/confirm-receipt', {
@@ -266,10 +267,10 @@ export default function OrderConfirmation() {
         )}
 
         {/* Buyer Actions: Confirm Receipt + Report Problem */}
-        {(canConfirm || canDispute) && (
+        {(canConfirm || canDispute) && !showConfirmReceipt && (
           <div className="flex gap-3 mb-6">
             {canConfirm && (
-              <button onClick={handleConfirmReceipt} disabled={confirming} className="btn-primary flex-1 disabled:opacity-50">
+              <button onClick={() => setShowConfirmReceipt(true)} disabled={confirming} className="btn-primary flex-1 disabled:opacity-50">
                 {confirming ? 'Confirming...' : 'Confirm Receipt'}
               </button>
             )}
@@ -278,6 +279,27 @@ export default function OrderConfirmation() {
                 Report a Problem
               </button>
             )}
+          </div>
+        )}
+
+        {/* Confirm Receipt confirmation */}
+        {showConfirmReceipt && (
+          <div className="border border-amber-200 rounded-xl p-5 mb-6 bg-amber-50/60">
+            <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">Are you sure?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Once you confirm, the payment will be <strong>released to the seller immediately</strong>. This cannot be undone.
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              If something is wrong with the item, close this and tap <strong>Report a Problem</strong> instead.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConfirmReceipt(false)} className="btn-outline flex-1">
+                Go Back
+              </button>
+              <button onClick={handleConfirmReceipt} disabled={confirming} className="btn-primary flex-1 disabled:opacity-50">
+                {confirming ? 'Releasing...' : 'Yes, Release Payment'}
+              </button>
+            </div>
           </div>
         )}
 
