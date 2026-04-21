@@ -3,6 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from '../components/ListingCard';
 import { formatPrice } from '../utils/formatPrice';
+import OrderStepper from '../components/OrderStepper';
 import { tcgTrackingUrl } from '../utils/tracking';
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -608,44 +609,17 @@ export default function Profile() {
                   {orders.map(order => {
                     const isDelivery = order.delivery_method === 'delivery';
                     const hasTracking = !!order.tracking_reference;
-                    // Determine display status
-                    let statusLabel = order.status.charAt(0).toUpperCase() + order.status.slice(1);
-                    let statusClass = 'bg-gray-100 text-gray-600';
-                    if (order.status === 'delivered') {
-                      statusLabel = 'Delivered';
-                      statusClass = 'bg-green-100 text-green-700';
-                    } else if (order.status === 'shipped') {
-                      statusLabel = 'In Transit';
-                      statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid' && isDelivery && hasTracking) {
-                      statusLabel = 'Courier Booked';
-                      statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid' && !isDelivery) {
-                      statusLabel = 'Arrange Collection';
-                      statusClass = 'bg-green-100 text-green-700';
-                    } else if (order.status === 'paid') {
-                      statusLabel = 'Paid';
-                      statusClass = 'bg-green-100 text-green-700';
-                    } else if (order.status === 'pending') {
-                      statusLabel = 'Payment Pending';
-                      statusClass = 'bg-yellow-100 text-yellow-700';
-                    } else if (order.status === 'cancelled') {
-                      statusLabel = 'Cancelled';
-                      statusClass = 'bg-red-100 text-red-700';
-                    }
                     return (
-                    <div
+                    <Link
                       key={order.id}
-                      className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
+                      to={`/orders/${order.id}`}
+                      className="card p-4 hover:shadow-md transition-shadow block"
                     >
-                      <Link
-                        to={`/orders/${order.id}`}
-                        className="flex items-center gap-4 flex-1 min-w-0"
-                      >
+                      <div className="flex items-center gap-4">
                         {order.listing_image ? (
-                          <img src={order.listing_image} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+                          <img src={order.listing_image} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-100 shrink-0" />
                         ) : (
-                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
                             <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -657,25 +631,22 @@ export default function Profile() {
                             From {order.seller_name} &middot; {new Date(order.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
-                      </Link>
-                      <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                        <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
-                          {statusLabel}
-                        </span>
-                        {isDelivery && order.tcg_waybill && (
-                          <a
-                            href={`https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(order.tcg_waybill)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full transition-colors"
-                          >
-                            Track Order
-                          </a>
-                        )}
+                        <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                          <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
+                          {isDelivery && order.tcg_waybill && (
+                            <span
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(`https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(order.tcg_waybill)}`, '_blank'); }}
+                              className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full transition-colors cursor-pointer"
+                            >
+                              Track Order
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <OrderStepper status={order.status} deliveryMethod={order.delivery_method} hasTracking={hasTracking} />
+                      </div>
+                    </Link>
                     );
                   })}
                 </div>

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
 import { tcgTrackingUrl } from '../utils/tracking';
+import OrderStepper from '../components/OrderStepper';
 
 function buyerStatusLabel(status) {
   const s = (status || '').toLowerCase().replace(/-/g, ' ');
@@ -175,15 +176,6 @@ export default function OrderConfirmation() {
     );
   }
 
-  const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-green-100 text-green-800',
-    shipped: 'bg-blue-100 text-blue-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-    refunded: 'bg-gray-100 text-gray-800',
-  };
-
   const isDelivery = order.delivery_method === 'delivery';
   const isBuyer = order.buyer_id === user?.id;
   const isSeller = order.seller_id === user?.id;
@@ -201,18 +193,9 @@ export default function OrderConfirmation() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <div className="card p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-gray-900">{order.listing_title}</h1>
-          <div className="flex items-center gap-2">
-            {isDelivery && (
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
-                Delivery
-              </span>
-            )}
-            <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
-              {order.status}
-            </span>
-          </div>
+        <h1 className="font-display text-2xl font-bold text-gray-900 mb-4">{order.listing_title}</h1>
+        <div className="mb-6">
+          <OrderStepper status={order.status} deliveryMethod={order.delivery_method} hasTracking={!!order.tracking_reference} size="lg" />
         </div>
 
         {/* Item */}
