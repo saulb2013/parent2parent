@@ -632,7 +632,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                          <p className="font-bold text-gray-900">{formatPrice(order.total_price)}</p>
+                          <p className="font-bold text-gray-900">{formatPrice(order.item_price)}</p>
                           {isDelivery && order.tcg_waybill && (
                             <span
                               onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(`https://www.thecourierguy.co.za/track?ref=${encodeURIComponent(order.tcg_waybill)}`, '_blank'); }}

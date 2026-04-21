@@ -9,6 +9,14 @@ function getStepIndex(orderStatus) {
   return 0; // pending
 }
 
+function Check({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
 export default function OrderStepper({ status, deliveryMethod, hasTracking, size = 'sm' }) {
   if (status === 'cancelled' || status === 'refunded') {
     const label = status === 'cancelled' ? 'Cancelled' : 'Refunded';
@@ -22,41 +30,38 @@ export default function OrderStepper({ status, deliveryMethod, hasTracking, size
   if (isDelivery && hasTracking && stepIndex >= 1) labels[1] = 'Courier Booked';
 
   const large = size === 'lg';
-  const dotSize = large ? 'w-7 h-7 text-xs' : 'w-5 h-5 text-[10px]';
-  const checkSize = large ? 'w-4 h-4' : 'w-3 h-3';
-  const labelSize = large ? 'text-xs mt-1.5' : 'text-[10px] mt-1';
-  const lineHeight = large ? 'h-1' : 'h-0.5';
-  const lineOffset = large ? 'mt-3.5' : 'mt-2.5';
 
   return (
     <div className="flex items-center w-full">
-      {labels.map((label, i) => (
-        <Fragment key={i}>
-          <div className="flex flex-col items-center" style={{ minWidth: 0 }}>
-            <div className={`${dotSize} rounded-full flex items-center justify-center font-bold shrink-0 ${
-              i < stepIndex ? 'bg-primary text-white' :
-              i === stepIndex ? 'bg-primary text-white ring-2 ring-primary/20' :
-              'bg-gray-200 text-gray-400'
-            }`}>
-              {i < stepIndex ? (
-                <svg className={checkSize} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                i + 1
-              )}
+      {labels.map((label, i) => {
+        const done = i <= stepIndex;
+        const isCurrent = i === stepIndex;
+        return (
+          <Fragment key={i}>
+            <div className="flex flex-col items-center shrink-0">
+              <div className={`rounded-full flex items-center justify-center ${
+                large ? 'w-6 h-6' : 'w-4 h-4'
+              } ${
+                done
+                  ? `bg-primary text-white ${isCurrent ? 'ring-[3px] ring-primary/15' : ''}`
+                  : 'border-2 border-gray-300'
+              }`}>
+                {done && <Check className={large ? 'w-3.5 h-3.5' : 'w-2.5 h-2.5'} />}
+              </div>
+              <span className={`whitespace-nowrap ${large ? 'text-[11px] mt-1.5' : 'text-[9px] mt-0.5'} ${
+                done ? 'text-primary font-semibold' : 'text-gray-400'
+              }`}>{label}</span>
             </div>
-            <span className={`${labelSize} whitespace-nowrap ${
-              i <= stepIndex ? 'text-primary font-medium' : 'text-gray-400'
-            }`}>{label}</span>
-          </div>
-          {i < labels.length - 1 && (
-            <div className={`flex-1 ${lineHeight} mx-1 rounded self-start ${lineOffset} ${
-              i < stepIndex ? 'bg-primary' : 'bg-gray-200'
-            }`} />
-          )}
-        </Fragment>
-      ))}
+            {i < labels.length - 1 && (
+              <div className={`flex-1 mx-1.5 rounded-full self-start ${
+                large ? 'h-[3px] mt-[11px]' : 'h-[2px] mt-[7px]'
+              } ${
+                i < stepIndex ? 'bg-primary' : 'bg-gray-200'
+              }`} />
+            )}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
