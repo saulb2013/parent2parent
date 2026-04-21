@@ -1,21 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const provinces = [
-  'All Provinces', 'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
-  'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'
-];
-
-export default function SearchBar({ className = '', defaultSearch = '', defaultProvince = '' }) {
+export default function SearchBar({ className = '', defaultSearch = '', defaultCategory = '' }) {
   const [search, setSearch] = useState(defaultSearch);
-  const [province, setProvince] = useState(defaultProvince);
+  const [category, setCategory] = useState(defaultCategory);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(r => r.json())
+      .then(d => setCategories(d.categories || []))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    if (province && province !== 'All Provinces') params.set('province', province);
+    if (category) params.set('category', category);
     navigate(`/browse?${params.toString()}`);
   };
 
@@ -27,23 +30,24 @@ export default function SearchBar({ className = '', defaultSearch = '', defaultP
         </svg>
         <input
           type="text"
-          placeholder="Search prams, toys, clothing…"
+          placeholder="Search prams, toys, clothing..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="input-field pl-10"
         />
       </div>
       <select
-        value={province}
-        onChange={e => setProvince(e.target.value)}
-        className="input-field sm:w-48"
+        value={category}
+        onChange={e => setCategory(e.target.value)}
+        className="input-field sm:w-52"
       >
-        {provinces.map(p => (
-          <option key={p} value={p === 'All Provinces' ? '' : p}>{p}</option>
+        <option value="">All Categories</option>
+        {categories.map(c => (
+          <option key={c.id} value={c.slug}>{c.emoji} {c.name}</option>
         ))}
       </select>
       <button type="submit" className="btn-primary whitespace-nowrap">
-        Find what you need
+        Search
       </button>
     </form>
   );

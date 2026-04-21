@@ -31,17 +31,17 @@ export default function Home() {
               Made for parents. Built on trust.
             </h1>
             <p className="mt-4 text-lg text-green-100 max-w-lg mx-auto">
-              South Africa's trusted marketplace for quality baby and kids products — saving money, reducing waste, and giving every item a second home.
+              Buy and sell quality pre-loved baby and kids gear. Secure payments, door-to-door delivery, and buyer protection on every order.
             </p>
             <div className="mt-8">
-              <SearchBar className="max-w-xl mx-auto" />
+              <SearchBar className="max-w-2xl mx-auto" />
             </div>
-            <div className="mt-6 flex flex-wrap gap-3 justify-center">
-              <Link to="/browse" className="btn-accent">
-                Shop pre-loved items
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <Link to="/browse" className="btn-accent text-lg px-10">
+                Start Shopping
               </Link>
-              <Link to="/sell" className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
-                Sell in minutes
+              <Link to="/sell" className="text-green-200 hover:text-white text-sm transition-colors">
+                or list something for sale
               </Link>
             </div>
           </div>
@@ -54,34 +54,34 @@ export default function Home() {
           <div className="flex items-center justify-center gap-3">
             <div className="w-10 h-10 rounded-full bg-badge flex items-center justify-center">
               <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-sm text-gray-800">Secure Payments</p>
+              <p className="text-xs text-gray-500">Card payments via Yoco</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-badge flex items-center justify-center">
+              <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div className="text-left">
-              <p className="font-semibold text-sm text-gray-800">Verified Sellers</p>
-              <p className="text-xs text-gray-500">Trusted parent community</p>
+              <p className="font-semibold text-sm text-gray-800">Buyer Protection</p>
+              <p className="text-xs text-gray-500">7-day money-back guarantee</p>
             </div>
           </div>
           <div className="flex items-center justify-center gap-3">
             <div className="w-10 h-10 rounded-full bg-badge flex items-center justify-center">
               <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
               </svg>
             </div>
             <div className="text-left">
-              <p className="font-semibold text-sm text-gray-800">Secure payments</p>
-              <p className="text-xs text-gray-500">Buy and sell safely in-app</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-badge flex items-center justify-center">
-              <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="font-semibold text-sm text-gray-800">ZAR Pricing</p>
-              <p className="text-xs text-gray-500">Local prices, no fees</p>
+              <p className="font-semibold text-sm text-gray-800">Door-to-Door Delivery</p>
+              <p className="text-xs text-gray-500">Tracked via The Courier Guy</p>
             </div>
           </div>
         </div>
