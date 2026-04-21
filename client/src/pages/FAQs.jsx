@@ -18,7 +18,7 @@ Your payment is processed by Yoco, South Africa's trusted payment gateway. Once 
       },
       {
         q: 'What is Buyer Protection and how does it work?',
-        a: `Buyer Protection is how we keep your money safe. When you pay for an item, your payment is held securely by Parent2Parent for 7 days after delivery. The seller does not receive your money until you confirm you're happy with the item, or until the 7-day protection window closes.
+        a: `Buyer Protection is how we keep your money safe. When you pay for an item, your payment is held securely by Parent2Parent for 48 hours after delivery. The seller does not receive your money until you confirm you're happy with the item, or until the 48-hour protection window closes.
 
 If something is wrong with what you received (it doesn't match the description, it's damaged, or it's the wrong item), you have 48 hours after delivery to raise a dispute. We'll pause the payment to the seller and work with both of you to resolve it. If the item needs to go back, you ship it to the seller and once they confirm receipt, we issue a full refund to your card.
 
@@ -74,9 +74,9 @@ After payment, you'll be redirected back to Parent2Parent where you can track yo
       },
       {
         q: 'What does "Confirm Receipt" do?',
-        a: `When you click "Confirm Receipt" on your order page, you're telling us that you've received the item and you're happy with it. This releases the payment to the seller immediately, rather than waiting for the full 7-day protection window to expire.
+        a: `When you click "Confirm Receipt" on your order page, you're telling us that you've received the item and you're happy with it. This releases the payment to the seller immediately, rather than waiting for the full 48-hour protection window to expire.
 
-Only click this button once you've inspected the item and are satisfied. Once confirmed, the payment is released and you can no longer raise a dispute through the platform. If you do nothing, the payment releases automatically 7 days after delivery.`
+Only click this button once you've inspected the item and are satisfied. Once confirmed, the payment is released and you can no longer raise a dispute through the platform. If you do nothing, the payment releases automatically 48 hours after delivery.`
       },
     ],
   },
@@ -104,7 +104,7 @@ The Buyer Protection fee is paid entirely by the buyer at checkout. It does not 
       },
       {
         q: 'When do I get paid?',
-        a: `After a buyer purchases your item and The Courier Guy delivers it, the buyer has 7 days to confirm they're happy. Once the buyer clicks "Confirm Receipt", or once the 7-day protection window closes (whichever comes first), your payment is released.
+        a: `After a buyer purchases your item and The Courier Guy delivers it, the buyer has 48 hours to confirm they're happy. Once the buyer clicks "Confirm Receipt", or once the 48-hour protection window closes (whichever comes first), your payment is released.
 
 Payouts are processed via EFT (electronic funds transfer) to your bank account. You'll receive the full item price you listed. Delivery times for the EFT depend on banking processing but are typically 1 to 3 business days after release.
 
@@ -200,7 +200,7 @@ All fees are shown clearly at checkout before you confirm your purchase. There a
         q: 'How does the escrow system work?',
         a: `When a buyer pays for an item, the money does not go directly to the seller. Instead, it's held securely by Parent2Parent. The seller's item is collected and delivered by The Courier Guy.
 
-Once the item is delivered, a 7-day protection window begins. During this time, the buyer can inspect the item and raise a dispute if something is wrong. If the buyer is happy, they can click "Confirm Receipt" to release the payment to the seller immediately. If they do nothing, the payment releases automatically after 7 days.
+Once the item is delivered, a 48-hour protection window begins. During this time, the buyer can inspect the item and raise a dispute if something is wrong. If the buyer is happy, they can click "Confirm Receipt" to release the payment to the seller immediately. If they do nothing, the payment releases automatically after 48 hours.
 
 If a dispute is raised, the timer pauses and the money stays held until the dispute is resolved. This system protects both buyers (who might receive something different from what was described) and sellers (who are guaranteed payment once the protection period ends).`
       },

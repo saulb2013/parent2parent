@@ -236,10 +236,10 @@ router.post('/refresh-statuses', authenticateToken, async (req, res) => {
 
         if (newStatus) {
           await pool.query('UPDATE orders SET status = $1, delivered_at = COALESCE(delivered_at, NOW()), updated_at = NOW() WHERE id = $2', [newStatus, order.id]);
-          // Start 7-day escrow timer on delivery
+          // Start 48-hour escrow timer on delivery
           if (newStatus === 'delivered') {
             await pool.query(
-              `UPDATE escrow_holds SET release_due_at = NOW() + INTERVAL '7 days', updated_at = NOW()
+              `UPDATE escrow_holds SET release_due_at = NOW() + INTERVAL '48 hours', updated_at = NOW()
                WHERE order_id = $1 AND status = 'holding'`, [order.id]
             );
           }
@@ -295,10 +295,10 @@ router.get('/track/:orderId', authenticateToken, async (req, res) => {
         'UPDATE orders SET status = $1, delivered_at = COALESCE(delivered_at, NOW()), updated_at = NOW() WHERE id = $2',
         [newOrderStatus, order.id]
       );
-      // Start 7-day escrow timer on delivery
+      // Start 48-hour escrow timer on delivery
       if (newOrderStatus === 'delivered') {
         await pool.query(
-          `UPDATE escrow_holds SET release_due_at = NOW() + INTERVAL '7 days', updated_at = NOW()
+          `UPDATE escrow_holds SET release_due_at = NOW() + INTERVAL '48 hours', updated_at = NOW()
            WHERE order_id = $1 AND status = 'holding'`, [order.id]
         );
       }

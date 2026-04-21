@@ -42,12 +42,10 @@ function timeRemaining(releaseDate) {
 }
 
 const DISPUTE_REASONS = [
-  'Item significantly different from description',
+  'Item significantly different from description or photos',
   'Item arrived damaged',
   'Wrong item received',
   'Item is counterfeit / fake',
-  'Item never arrived',
-  'Other',
 ];
 
 export default function OrderConfirmation() {
@@ -65,6 +63,8 @@ export default function OrderConfirmation() {
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
   const [disputeError, setDisputeError] = useState('');
   const [returnTracking, setReturnTracking] = useState('');
+  const [sellerReturnAddress, setSellerReturnAddress] = useState('');
+  const [addressSubmitting, setAddressSubmitting] = useState(false);
 
   const fetchOrder = () => {
     fetch(`/api/orders/${id}`, { credentials: 'include' })
@@ -125,7 +125,28 @@ export default function OrderConfirmation() {
     }
   };
 
+  const handleProvideAddress = async (disputeId) => {
+    if (!sellerReturnAddress.trim()) { alert('Please enter your return address'); return; }
+    setAddressSubmitting(true);
+    try {
+      const res = await fetch(`/api/disputes/${disputeId}/provide-address`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ returnAddress: sellerReturnAddress }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      fetchOrder();
+    } catch (err) {
+      alert(err.message || 'Failed to provide address');
+    } finally {
+      setAddressSubmitting(false);
+    }
+  };
+
   const handleReturnShipped = async (disputeId) => {
+    if (!returnTracking.trim()) { alert('Please enter a tracking number'); return; }
     try {
       const res = await fetch(`/api/disputes/${disputeId}/return-shipped`, {
         method: 'POST',
@@ -226,9 +247,9 @@ export default function OrderConfirmation() {
                   {order.status === 'delivered'
                     ? (isBuyer
                         ? 'Your item has been delivered. Confirm you\'re happy to release payment, or raise a problem within 48 hours.'
-                        : 'The item has been delivered. Payment will release once the buyer confirms or after 7 days.')
+                        : 'The item has been delivered. Payment will release once the buyer confirms or after 48 hours.')
                     : (isBuyer
-                        ? 'Your payment is held securely while your item is on its way. The 7-day protection period starts once it\'s delivered.'
+                        ? 'Your payment is held securely while your item is on its way. The 48-hour protection period starts once it\'s delivered.'
                         : 'The buyer\'s payment is held securely until their item is delivered and the protection period ends.')}
                 </p>
                 {order.status === 'delivered' && order.release_due_at && (
@@ -307,7 +328,7 @@ export default function OrderConfirmation() {
         {showDispute && (
           <div className="border border-red-200 rounded-xl p-5 mb-6 bg-red-50/50">
             <h3 className="font-display text-lg font-semibold text-gray-900 mb-3">Report a Problem</h3>
-            <p className="text-xs text-gray-500 mb-4">You have 48 hours after delivery to raise a dispute. The seller's payment will be paused while this is resolved.</p>
+            <p className="text-xs text-gray-500 mb-4">You have 48 hours after delivery to raise a return if the item significantly differs from the listing. The seller's payment will be paused while this is resolved. Return postage is paid by the buyer.</p>
 
             <div className="space-y-3">
               <div>
@@ -341,18 +362,57 @@ export default function OrderConfirmation() {
         {/* Active Dispute Status */}
         {hasDispute && (
           <div className="border border-yellow-200 rounded-xl p-5 mb-6 bg-yellow-50/50">
-            <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">Dispute Open</h3>
+            <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">Return in Progress</h3>
             <p className="text-sm text-gray-600 mb-1"><strong>Reason:</strong> {order.dispute_reason}</p>
             <p className="text-xs text-gray-400 mb-4">Opened {new Date(order.dispute_created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
 
+            {/* Step 1: Awaiting seller's return address */}
+            {order.dispute_status === 'awaiting_address' && isBuyer && (
+              <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                <p className="text-sm font-medium text-gray-800 mb-1">Waiting for the seller</p>
+                <p className="text-sm text-gray-600">We've asked the seller to provide their return address. You'll get an email as soon as it's ready.</p>
+              </div>
+            )}
+
+            {order.dispute_status === 'awaiting_address' && isSeller && (
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <p className="text-sm font-medium text-gray-800 mb-1">Provide your return address</p>
+                  <p className="text-sm text-gray-600 mb-3">The buyer needs to ship the item back to you. Please provide the address where you'd like to receive it within 48 hours.</p>
+                  <textarea
+                    value={sellerReturnAddress}
+                    onChange={e => setSellerReturnAddress(e.target.value)}
+                    placeholder="Full return address (street, suburb, city, postal code)"
+                    rows={3}
+                    className="input w-full resize-none mb-3"
+                  />
+                  <button onClick={() => handleProvideAddress(order.dispute_id)} disabled={addressSubmitting} className="btn-primary w-full disabled:opacity-50">
+                    {addressSubmitting ? 'Submitting...' : 'Submit Return Address'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Address provided, buyer must ship within 72 hours */}
             {order.dispute_status === 'open' && isBuyer && (
               <div className="space-y-3">
-                <p className="text-sm text-gray-600">Ship the item back to the seller and enter the tracking details below.</p>
+                <div className="bg-white rounded-lg p-4 border border-gray-200 mb-3">
+                  <p className="text-sm font-medium text-gray-800 mb-1">Return address</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{order.seller_return_address}</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                  <p className="text-xs text-amber-800">
+                    <strong>Ship within 72 hours.</strong> Return postage is paid by the buyer. The item must be returned in the same condition you received it.
+                    {order.return_deadline && (
+                      <> Deadline: {new Date(order.return_deadline).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</>
+                    )}
+                  </p>
+                </div>
                 <input
                   type="text"
                   value={returnTracking}
                   onChange={e => setReturnTracking(e.target.value)}
-                  placeholder="Return tracking number (optional)"
+                  placeholder="Return tracking number"
                   className="input w-full"
                 />
                 <button onClick={() => handleReturnShipped(order.dispute_id)} className="btn-primary w-full">
@@ -362,12 +422,22 @@ export default function OrderConfirmation() {
             )}
 
             {order.dispute_status === 'open' && isSeller && (
-              <p className="text-sm text-gray-600">The buyer is preparing to return the item. You'll be notified when it ships.</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-800 mb-1">Waiting for the buyer to ship</p>
+                <p className="text-sm text-gray-600">Your return address has been shared. The buyer has 72 hours to ship the item back.</p>
+              </div>
             )}
 
+            {/* Step 3: Return shipped, waiting for seller to confirm */}
             {order.dispute_status === 'return_shipping' && isSeller && (
               <div className="space-y-3">
-                <p className="text-sm text-gray-600">The buyer has shipped the item back. Confirm when you receive it.</p>
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <p className="text-sm font-medium text-gray-800 mb-1">Return is on its way</p>
+                  <p className="text-sm text-gray-600 mb-2">The buyer has shipped the item back to you.</p>
+                  {order.dispute_return_tracking && (
+                    <p className="text-sm text-gray-700"><strong>Tracking:</strong> {order.dispute_return_tracking}</p>
+                  )}
+                </div>
                 <button onClick={() => handleConfirmReturn(order.dispute_id)} className="btn-primary w-full">
                   I've Received the Return
                 </button>
@@ -375,23 +445,39 @@ export default function OrderConfirmation() {
             )}
 
             {order.dispute_status === 'return_shipping' && isBuyer && (
-              <p className="text-sm text-gray-600">Waiting for the seller to confirm they received your return.</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-800 mb-1">Return shipped</p>
+                <p className="text-sm text-gray-600">Waiting for the seller to confirm they received your return. Once confirmed, we'll process your refund.</p>
+              </div>
             )}
 
+            {/* Step 4: Return received, admin processes refund */}
             {order.dispute_status === 'return_received' && (
-              <p className="text-sm text-gray-600">Return received by seller. An admin will process your refund shortly.</p>
+              <div className="bg-white rounded-lg p-4 border border-green-200">
+                <p className="text-sm font-medium text-gray-800 mb-1">Return received</p>
+                <p className="text-sm text-gray-600">The seller has confirmed receipt. Your refund will be processed shortly — the money will go back to your original payment method.</p>
+              </div>
             )}
 
             {order.dispute_status === 'admin_review' && (
-              <p className="text-sm text-gray-600">This dispute has been escalated to our team for review. We'll be in touch within 24 hours.</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-800 mb-1">Under review</p>
+                <p className="text-sm text-gray-600">This return has been escalated to our team. We'll be in touch within 24 hours.</p>
+              </div>
             )}
 
             {order.dispute_status === 'refunded' && (
-              <p className="text-sm text-green-700">This dispute has been resolved. A full refund has been issued.</p>
+              <div className="bg-white rounded-lg p-4 border border-green-200">
+                <p className="text-sm font-medium text-green-800">Refund issued</p>
+                <p className="text-sm text-green-700">A full refund has been processed to your original payment method.</p>
+              </div>
             )}
 
             {order.dispute_status === 'resolved_no_refund' && (
-              <p className="text-sm text-gray-600">This dispute has been reviewed and resolved. No refund was issued.</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-800">Resolved</p>
+                <p className="text-sm text-gray-600">This return request has been reviewed and resolved. No refund was issued.</p>
+              </div>
             )}
           </div>
         )}

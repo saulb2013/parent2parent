@@ -110,7 +110,7 @@ export default function Admin() {
   }
 
   const pendingPayoutCount = payoutFilter === 'pending' ? payouts.length : 0;
-  const activeDisputeCount = disputes.filter(d => ['open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status)).length;
+  const activeDisputeCount = disputes.filter(d => ['awaiting_address', 'open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status)).length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -141,7 +141,7 @@ export default function Admin() {
             <div className="card p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">In Escrow</p>
               <p className="text-2xl font-bold text-blue-600">{formatPrice(Number(revenue.holding_for_sellers))}</p>
-              <p className="text-xs text-gray-400 mt-1">Awaiting delivery + 7 days</p>
+              <p className="text-xs text-gray-400 mt-1">Awaiting delivery + 48 hours</p>
             </div>
             <div className="card p-4 border-orange-200">
               <p className="text-xs text-orange-600 uppercase tracking-wider font-semibold mb-1">You Need to EFT</p>
@@ -259,7 +259,7 @@ export default function Admin() {
           ) : (
             <div className="space-y-4">
               {disputes.map(d => {
-                const isActive = ['open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status);
+                const isActive = ['awaiting_address', 'open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status);
                 const needsYourAction = ['return_received', 'admin_review'].includes(d.status);
 
                 return (
@@ -277,10 +277,17 @@ export default function Admin() {
                       </div>
                     )}
 
+                    {d.status === 'awaiting_address' && (
+                      <div className="bg-yellow-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-yellow-800 mb-1">Waiting: Seller to provide return address</p>
+                        <p className="text-yellow-700 text-xs">The seller has 48 hours to provide their return address. If they don't, this will auto-escalate to you.</p>
+                      </div>
+                    )}
+
                     {d.status === 'open' && (
                       <div className="bg-yellow-50 rounded-lg px-4 py-3 mb-4 text-sm">
                         <p className="font-semibold text-yellow-800 mb-1">Waiting: Buyer to ship the item back</p>
-                        <p className="text-yellow-700 text-xs">The buyer has 72 hours to ship the return. If they don't, this will auto-escalate to you {daysUntil(new Date(new Date(d.created_at).getTime() + 48 * 60 * 60 * 1000))}.</p>
+                        <p className="text-yellow-700 text-xs">The seller provided their address. The buyer has 72 hours to ship the return.</p>
                       </div>
                     )}
 
@@ -303,6 +310,7 @@ export default function Admin() {
                       <div className="text-right shrink-0">
                         {d.total_price && <p className="font-bold">{formatPrice(d.total_price)}</p>}
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          d.status === 'awaiting_address' ? 'bg-orange-100 text-orange-800' :
                           d.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
                           d.status === 'admin_review' ? 'bg-red-100 text-red-800' :
                           d.status === 'return_shipping' ? 'bg-blue-100 text-blue-800' :
@@ -364,7 +372,7 @@ export default function Admin() {
       {tab === 'escrow' && (
         <div>
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 text-sm text-gray-700">
-            <strong>What is this?</strong> Every buyer payment is held for 7 days before being released to the seller.
+            <strong>What is this?</strong> Every buyer payment is held for 48 hours after delivery before being released to the seller.
             This protects buyers if something goes wrong. You don't need to do anything here — escrows release automatically.
             When they do, the seller appears in the <strong>Payouts</strong> tab for you to EFT.
           </div>

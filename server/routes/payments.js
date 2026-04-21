@@ -78,7 +78,7 @@ async function handleOrderPaid(pool, orderId) {
 
   // Create escrow hold — timer doesn't start until delivery.
   // release_due_at is set far in the future as a placeholder; it gets
-  // recalculated to delivered_at + 7 days when the order is delivered.
+  // recalculated to delivered_at + 48 hours when the order is delivered.
   await pool.query(
     `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
      VALUES ($1, $2, $3, $4, $5, $6, 'holding', NOW(), NOW() + INTERVAL '90 days')

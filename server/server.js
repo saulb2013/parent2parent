@@ -87,6 +87,10 @@ async function runMigrations() {
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_role TEXT DEFAULT NULL",
+    "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS seller_return_address TEXT",
+    "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS seller_address_provided_at TIMESTAMPTZ",
+    "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS return_shipped_at TIMESTAMPTZ",
+    "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS return_deadline TIMESTAMPTZ",
   ];
   for (const sql of migrations) {
     try { await pool.query(sql); } catch {}
@@ -150,7 +154,7 @@ async function runMigrations() {
     await pool.query(
       `INSERT INTO escrow_holds (order_id, seller_id, buyer_id, item_amount, platform_fee, courier_fee, status, hold_started_at, release_due_at)
        SELECT o.id, o.seller_id, o.buyer_id, o.item_price, o.platform_fee, COALESCE(o.courier_fee, 0),
-              'holding', o.created_at, COALESCE(o.delivered_at, NOW()) + INTERVAL '7 days'
+              'holding', o.created_at, COALESCE(o.delivered_at, NOW()) + INTERVAL '48 hours'
        FROM orders o
        WHERE o.status = 'delivered'
          AND NOT EXISTS (SELECT 1 FROM escrow_holds eh WHERE eh.order_id = o.id)
@@ -200,10 +204,15 @@ async function releaseExpiredEscrows() {
     );
     console.log(`[ESCROW] Auto-released escrow #${escrow.id} for order #${escrow.order_id}`);
   }
-  // Auto-escalate disputes older than 48hrs
+  // Auto-escalate: seller didn't provide address within 48hrs
   await pool.query(
     `UPDATE disputes SET status = 'admin_review', escalated_at = NOW(), updated_at = NOW()
-     WHERE status = 'open' AND created_at <= NOW() - INTERVAL '48 hours'`
+     WHERE status = 'awaiting_address' AND created_at <= NOW() - INTERVAL '48 hours'`
+  );
+  // Auto-escalate: buyer didn't ship within 72hrs of getting address
+  await pool.query(
+    `UPDATE disputes SET status = 'admin_review', escalated_at = NOW(), updated_at = NOW()
+     WHERE status = 'open' AND return_deadline IS NOT NULL AND return_deadline <= NOW()`
   );
   return due.length;
 }
