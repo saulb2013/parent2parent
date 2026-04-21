@@ -153,7 +153,7 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { name: 'Zanele M.', location: 'Johannesburg', text: 'Sold our Bugaboo in two days! The buyers were a lovely couple expecting their first. Love that these items find new families.' },
+            { name: 'Zanele M.', location: 'Johannesburg', text: 'Sold our Bugaboo in two days! The Courier Guy collected it from my door and I got paid a week later. Love that these items find new families.' },
             { name: 'James K.', location: 'Cape Town', text: 'Found an amazing Stokke high chair at half the retail price. Looks brand new. Parent2Parent is our go-to for baby gear.' },
             { name: 'Ayesha P.', location: 'Durban', text: 'As a mom of three, I both buy and sell here regularly. The community is wonderful and everything feels safe and trustworthy.' },
           ].map((t, i) => (
