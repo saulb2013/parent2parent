@@ -727,18 +727,6 @@ export default function Profile() {
               ) : (
                 <div className="space-y-3">
                   {sellerOrders.map(order => {
-                    let statusLabel, statusClass;
-                    if (order.status === 'delivered') {
-                      statusLabel = 'Delivered'; statusClass = 'bg-green-100 text-green-700';
-                    } else if (order.status === 'shipped') {
-                      statusLabel = 'In transit'; statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid' && order.tracking_reference) {
-                      statusLabel = 'Courier booked'; statusClass = 'bg-blue-100 text-blue-700';
-                    } else if (order.status === 'paid') {
-                      statusLabel = 'Paid'; statusClass = 'bg-green-100 text-green-700';
-                    } else {
-                      statusLabel = order.status; statusClass = 'bg-gray-100 text-gray-600';
-                    }
                     return (
                       <Link
                         key={order.id}
@@ -763,26 +751,18 @@ export default function Profile() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-bold text-gray-900">{formatPrice(order.item_price)}</p>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
-                              {statusLabel}
-                            </span>
+                            {order.tcg_waybill && (
+                              <span
+                                onClick={e => { e.preventDefault(); window.open(tcgTrackingUrl(order.tcg_waybill), '_blank'); }}
+                                className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full transition-colors cursor-pointer"
+                              >
+                                Track
+                              </span>
+                            )}
                           </div>
                         </div>
-
-                        {/* Delivery detail row */}
-                        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span className="font-medium text-gray-600">Delivery</span>
-                          {order.tcg_waybill && (
-                            <span>Waybill: <span className="tabular font-medium text-gray-700">{order.tcg_waybill}</span></span>
-                          )}
-                          {order.tcg_waybill && (
-                            <span
-                              onClick={e => { e.preventDefault(); window.open(tcgTrackingUrl(order.tcg_waybill), '_blank'); }}
-                              className="text-primary font-semibold hover:underline cursor-pointer"
-                            >
-                              Track
-                            </span>
-                          )}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <OrderStepper status={order.status} deliveryMethod={order.delivery_method} hasTracking={!!order.tracking_reference} />
                         </div>
                       </Link>
                     );
