@@ -84,6 +84,27 @@ router.put('/:id', authenticateToken, upload.single('avatar'), async (req, res) 
   }
 });
 
+// PUT /api/users/:id/role
+router.put('/:id/role', authenticateToken, async (req, res) => {
+  const db = req.app.get('db');
+  if (req.user.id !== parseInt(req.params.id)) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const { role } = req.body;
+  if (!role || !['buyer', 'seller'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be "buyer" or "seller"' });
+  }
+
+  try {
+    await db.query('UPDATE users SET primary_role = $1 WHERE id = $2', [role, req.params.id]);
+    res.json({ success: true, role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
 // GET /api/users/:id/saved
 router.get('/:id/saved', authenticateToken, async (req, res) => {
   const db = req.app.get('db');

@@ -26,7 +26,7 @@ export default function Register() {
     setError('');
     try {
       await register(form);
-      navigate('/');
+      navigate('/welcome');
     } catch (err) {
       setError(err.message);
     } finally {

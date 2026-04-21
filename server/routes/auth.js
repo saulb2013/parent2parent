@@ -27,8 +27,8 @@ router.post('/register', async (req, res) => {
       [name, email, password_hash, province || null, city || null, phone || null]
     );
 
-    const user = { id: rows[0].id, name, email };
-    const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
+    const user = { id: rows[0].id, name, email, primary_role: null };
+    const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -69,7 +69,7 @@ router.post('/login', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({ user: { ...payload, avatar_url: user.avatar_url, province: user.province, city: user.city, phone: user.phone, street_address: user.street_address, unit: user.unit, postal_code: user.postal_code } });
+    res.json({ user: { ...payload, avatar_url: user.avatar_url, province: user.province, city: user.city, phone: user.phone, street_address: user.street_address, unit: user.unit, postal_code: user.postal_code, primary_role: user.primary_role } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
@@ -80,7 +80,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   const db = req.app.get('db');
   try {
     const { rows } = await db.query(
-      'SELECT id, name, email, avatar_url, province, city, phone, bio, street_address, unit, postal_code, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, province, city, phone, bio, street_address, unit, postal_code, primary_role, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });

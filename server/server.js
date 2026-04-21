@@ -86,6 +86,7 @@ async function runMigrations() {
     )`,
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_role TEXT DEFAULT NULL",
   ];
   for (const sql of migrations) {
     try { await pool.query(sql); } catch {}
