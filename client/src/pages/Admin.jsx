@@ -192,7 +192,7 @@ export default function Admin() {
           {payouts.length === 0 ? (
             <div className="card p-8 text-center">
               <p className="text-gray-500 font-medium">{payoutFilter === 'pending' ? 'No pending payouts' : 'No completed payouts yet'}</p>
-              <p className="text-xs text-gray-400 mt-1">{payoutFilter === 'pending' ? 'When a buyer\'s 7-day escrow expires or they confirm receipt, the seller\'s payout will appear here.' : 'Once you EFT a seller and mark it paid, it moves here.'}</p>
+              <p className="text-xs text-gray-400 mt-1">{payoutFilter === 'pending' ? 'When a buyer\'s 48-hour escrow expires or they confirm receipt, the seller\'s payout will appear here.' : 'Once you EFT a seller and mark it paid, it moves here.'}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -260,41 +260,56 @@ export default function Admin() {
             <div className="space-y-4">
               {disputes.map(d => {
                 const isActive = ['awaiting_address', 'open', 'return_shipping', 'return_received', 'admin_review'].includes(d.status);
-                const needsYourAction = ['return_received', 'admin_review'].includes(d.status);
+                const returnShippingDays = d.return_shipped_at ? Math.floor((Date.now() - new Date(d.return_shipped_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                const returnShippingStale = d.status === 'return_shipping' && returnShippingDays >= 7;
+                const returnReceivedDays = d.seller_confirmed_return_at ? Math.floor((Date.now() - new Date(d.seller_confirmed_return_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                const needsYourAction = ['return_received', 'admin_review'].includes(d.status) || returnShippingStale;
 
                 return (
                   <div key={d.id} className={`card p-5 ${needsYourAction ? 'border-l-4 border-l-red-400' : isActive ? 'border-l-4 border-l-yellow-400' : ''}`}>
-                    {/* What you need to do */}
-                    {needsYourAction && (
+                    {/* Action needed: return_received or admin_review */}
+                    {d.status === 'return_received' && (
                       <div className="bg-red-50 rounded-lg px-4 py-3 mb-4 text-sm">
-                        <p className="font-semibold text-red-800 mb-1">Action required: Decide this dispute</p>
-                        {d.status === 'return_received' && (
-                          <p className="text-red-700 text-xs">The seller has received the returned item. Issue a full Yoco refund to the buyer, or resolve without refund if the claim was invalid.</p>
-                        )}
-                        {d.status === 'admin_review' && (
-                          <p className="text-red-700 text-xs">This dispute was auto-escalated after 48 hours with no resolution. Review and decide.</p>
-                        )}
+                        <p className="font-semibold text-red-800 mb-1">Action required: Process refund</p>
+                        <p className="text-red-700 text-xs">The seller has received the returned item{returnReceivedDays > 0 ? ` (${returnReceivedDays} day${returnReceivedDays === 1 ? '' : 's'} ago)` : ''}. Issue a full Yoco refund to the buyer, or resolve without refund if the claim was invalid.</p>
                       </div>
                     )}
 
+                    {d.status === 'admin_review' && (
+                      <div className="bg-red-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-red-800 mb-1">Action required: Escalated dispute</p>
+                        <p className="text-red-700 text-xs">This dispute was auto-escalated because a deadline was missed. Review the situation and decide: refund the buyer or release payment to the seller.</p>
+                      </div>
+                    )}
+
+                    {/* Waiting states with time indicators */}
                     {d.status === 'awaiting_address' && (
                       <div className="bg-yellow-50 rounded-lg px-4 py-3 mb-4 text-sm">
                         <p className="font-semibold text-yellow-800 mb-1">Waiting: Seller to provide return address</p>
-                        <p className="text-yellow-700 text-xs">The seller has 48 hours to provide their return address. If they don't, this will auto-escalate to you.</p>
+                        <p className="text-yellow-700 text-xs">Opened {daysAgo(d.created_at)}. Auto-escalates to you if no address within 48 hours{d.created_at ? ` (${daysUntil(new Date(new Date(d.created_at).getTime() + 48 * 60 * 60 * 1000))})` : ''}.</p>
                       </div>
                     )}
 
                     {d.status === 'open' && (
                       <div className="bg-yellow-50 rounded-lg px-4 py-3 mb-4 text-sm">
-                        <p className="font-semibold text-yellow-800 mb-1">Waiting: Buyer to ship the item back</p>
-                        <p className="text-yellow-700 text-xs">The seller provided their address. The buyer has 72 hours to ship the return.</p>
+                        <p className="font-semibold text-yellow-800 mb-1">Waiting: Buyer to ship the return</p>
+                        <p className="text-yellow-700 text-xs">Seller provided address {daysAgo(d.seller_address_provided_at)}. Buyer must ship within 72 hours{d.return_deadline ? ` (${daysUntil(new Date(d.return_deadline))})` : ''}. Auto-escalates if missed.</p>
                       </div>
                     )}
 
-                    {d.status === 'return_shipping' && (
+                    {d.status === 'return_shipping' && !returnShippingStale && (
                       <div className="bg-blue-50 rounded-lg px-4 py-3 mb-4 text-sm">
                         <p className="font-semibold text-blue-800 mb-1">Waiting: Seller to confirm return received</p>
-                        <p className="text-blue-700 text-xs">The buyer has shipped the item back. Waiting for seller to confirm they got it.
+                        <p className="text-blue-700 text-xs">Buyer shipped {daysAgo(d.return_shipped_at)}. Waiting for seller to confirm they got it.
+                          {d.return_tracking && <span className="block mt-1">Tracking: <strong>{d.return_tracking}</strong></span>}
+                        </p>
+                      </div>
+                    )}
+
+                    {d.status === 'return_shipping' && returnShippingStale && (
+                      <div className="bg-red-50 rounded-lg px-4 py-3 mb-4 text-sm">
+                        <p className="font-semibold text-red-800 mb-1">Action required: Seller hasn't confirmed return ({returnShippingDays} days)</p>
+                        <p className="text-red-700 text-xs">The buyer shipped the return {daysAgo(d.return_shipped_at)} but the seller hasn't confirmed receipt. You may need to follow up or make a decision.
                           {d.return_tracking && <span className="block mt-1">Tracking: <strong>{d.return_tracking}</strong></span>}
                         </p>
                       </div>

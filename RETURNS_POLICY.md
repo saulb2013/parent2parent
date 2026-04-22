@@ -226,17 +226,17 @@ The system runs a background check every **5 minutes** that handles:
 
 ---
 
-## 9. Known Gaps & Considerations
+## 9. Known Considerations
 
-1. **No deadline on `return_shipping`:** If the buyer ships but the seller never confirms receipt, the dispute sits indefinitely. Admin must monitor.
+1. **`return_shipping` has no auto-escalation deadline:** If the seller never confirms receipt, the dispute stays in `return_shipping`. However, after 7 days the admin dashboard flags it red as "Action required" so the admin can follow up or decide.
 
-2. **No deadline on `return_received`:** If admin doesn't act, the dispute waits. No auto-escalation.
+2. **`return_received` has no auto-escalation deadline:** Once the seller confirms receipt, the admin must act. The admin dashboard flags it red as "Action required" with a day counter showing how long it's been waiting.
 
-3. **Dispute reasons are client-only:** The 4 valid reasons are enforced in the UI dropdown, but the server only validates that a reason string is non-empty. Someone could submit any text via API.
+3. **Dispute reasons are client-only:** The 4 valid reasons are enforced in the UI dropdown, but the server only validates that a reason string is non-empty.
 
-5. **Full refund only:** The Yoco refund always refunds the entire checkout amount. There is no partial refund option.
+4. **Full refund only:** The Yoco refund always refunds the entire checkout amount. There is no partial refund option.
 
-6. **Listing re-activation:** On refund, the listing is set back to `active` so the seller can re-sell. This assumes the item is being returned.
+5. **Listing re-activation:** On refund, the listing is automatically set back to `active` so the seller can re-sell the item.
 
 ---
 
