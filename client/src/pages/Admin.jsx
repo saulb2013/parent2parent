@@ -39,7 +39,7 @@ export default function Admin() {
   useEffect(() => {
     fetch('/api/admin/revenue', { credentials: 'include' })
       .then(r => {
-        if (r.status === 403) { setAuthorized(false); return null; }
+        if (!r.ok) { setAuthorized(false); return null; }
         setAuthorized(true);
         return r.json();
       })
@@ -97,14 +97,19 @@ export default function Admin() {
   };
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-4 py-8"><div className="animate-pulse h-64 bg-gray-200 rounded-xl" /></div>;
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    );
   }
 
   if (!authorized) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <h2 className="font-display text-2xl font-bold text-gray-900">Access Denied</h2>
-        <p className="text-gray-500 mt-2">You don't have admin access.</p>
+        <p className="text-gray-500 mt-2">You need to be logged in as an admin to view this page.</p>
+        <a href="/login" className="btn-primary mt-4 inline-block">Log In</a>
       </div>
     );
   }
