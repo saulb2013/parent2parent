@@ -25,6 +25,20 @@ const provinces = [
   'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'
 ];
 
+// Words that suggest a safety or quality issue. We don't block the listing
+// but we ask the seller to confirm they've explained the issue clearly so
+// buyers aren't surprised after delivery.
+const RISKY_WORDS = [
+  'broken', 'cracked', 'recalled', 'fake', 'replica',
+  'missing', 'no brakes', 'damaged', 'unsafe',
+];
+
+function detectRiskyWords(text) {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  return RISKY_WORDS.filter(w => lower.includes(w));
+}
+
 // Category-specific things the seller should mention in their description.
 // Keyed by category slug — falls through if no match.
 const CATEGORY_DISCLOSURES = {
@@ -148,7 +162,7 @@ export default function CreateListing() {
   };
 
   const canProceed = () => {
-    if (step === 1) return form.category_id && form.title && form.condition && form.description;
+    if (step === 1) return form.category_id && form.title && form.condition && form.description.trim().length >= 50;
     if (step === 2) return form.price && form.images.length >= 4;
     if (step === 3) return form.province && form.city && form.accuracyConfirmed;
     return false;
@@ -376,7 +390,32 @@ export default function CreateListing() {
               className="input-field h-32 resize-none"
               maxLength={2000}
             />
-            <p className="text-xs text-gray-400 mt-1">{form.description.length}/2000</p>
+            <div className="flex justify-between mt-1">
+              <p className={`text-xs ${form.description.trim().length < 50 ? 'text-amber-600' : 'text-gray-400'}`}>
+                {form.description.trim().length < 50
+                  ? `${50 - form.description.trim().length} more characters needed (minimum 50)`
+                  : 'Looks good'}
+              </p>
+              <p className="text-xs text-gray-400">{form.description.length}/2000</p>
+            </div>
+            {(() => {
+              const risky = detectRiskyWords(form.description);
+              if (risky.length === 0) return null;
+              return (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                  <p className="text-xs text-amber-900">
+                    <strong>Heads up:</strong> your description mentions{' '}
+                    {risky.map((w, i) => (
+                      <span key={w}>
+                        <span className="font-mono bg-amber-100 px-1 rounded">{w}</span>
+                        {i < risky.length - 1 && ', '}
+                      </span>
+                    ))}
+                    . If the item has this issue, make sure you've explained it clearly and shown it in the photos. If it doesn't, consider rephrasing — buyers may be put off.
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

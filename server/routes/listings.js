@@ -148,6 +148,10 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
     return res.status(400).json({ error: 'All fields are required' });
   }
 
+  if (description.trim().length < 50) {
+    return res.status(400).json({ error: 'Description must be at least 50 characters' });
+  }
+
   if (!req.files || req.files.length < 4) {
     return res.status(400).json({ error: 'At least 4 photos are required' });
   }
