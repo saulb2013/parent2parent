@@ -461,12 +461,15 @@ export default function OrderConfirmation() {
                   <p className="text-sm font-medium text-gray-800 mb-1">Return address</p>
                   <p className="text-sm text-gray-700 whitespace-pre-line">{order.seller_return_address}</p>
                 </div>
-                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                  <p className="text-xs text-amber-800">
-                    <strong>Ship within 72 hours.</strong> Return postage is paid by the buyer. The item must be returned in the same condition you received it.
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 space-y-2">
+                  <p className="text-xs text-amber-900">
+                    <strong>Ship within 72 hours.</strong> The item must be returned in the same condition you received it.
                     {order.return_deadline && (
-                      <> Deadline: {new Date(order.return_deadline).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</>
+                      <> Deadline: <strong>{new Date(order.return_deadline).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></>
                     )}
+                  </p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    <strong>You pay return postage upfront.</strong> Use a tracked courier — if the parcel is lost without tracking, the loss is yours. If your return is approved as a seller-fault issue, you'll get a full refund of what you paid at checkout; reimbursement of return postage is reviewed case-by-case if you contact us with the receipt.
                   </p>
                 </div>
                 <input

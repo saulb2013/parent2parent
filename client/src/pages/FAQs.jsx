@@ -53,6 +53,18 @@ The seller will provide their return address, and you ship the item back (return
 If you and the seller can't reach agreement, our team steps in within 48 hours to review the case and make a decision.`
       },
       {
+        q: 'Who pays for return shipping?',
+        a: `If you raise a return, you pay for the return postage upfront — the same way you would in any shop. We recommend using a tracked courier service so there's a record the parcel left your hands.
+
+If your return is approved because the seller was at fault (item arrived damaged, wrong item, counterfeit, or materially different from the listing), you'll receive a full refund of what you paid at checkout, including the original delivery fee and Buyer Protection fee. If you'd like the return postage reimbursed too, contact us with your courier receipt and we'll review case by case.
+
+If your return is not approved (you missed a deadline, didn't supply evidence, or the issue is just buyer's remorse / it doesn't fit), you carry the cost of the return postage.
+
+If the return parcel is lost in transit and you used tracked shipping, we'll work with the courier to resolve it. If you didn't use tracked shipping, the risk of loss is on you.
+
+We don't charge any return admin fee.`
+      },
+      {
         q: 'What if my item never arrives?',
         a: `If your item was never shipped by the seller, or if The Courier Guy loses the parcel, contact us and we'll issue a full refund. You won't need to ship anything back because nothing arrived.
 
