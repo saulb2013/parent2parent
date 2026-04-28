@@ -90,6 +90,19 @@ After payment, you'll be redirected back to Parent2Parent where you can track yo
 
 Only click this button once you've inspected the item and are satisfied. Once confirmed, the payment is released and you can no longer raise a dispute through the platform. If you do nothing, the payment releases automatically 48 hours after delivery.`
       },
+      {
+        q: 'Why buy here instead of Facebook Marketplace?',
+        a: `On Parent2Parent your money is protected from the moment you pay. Sellers don't get paid until the item is delivered and the 48-hour protection window has passed (or you confirm receipt earlier). On Facebook, you typically pay cash or EFT directly to the seller before you've even seen the item — there's no recourse if something goes wrong.
+
+A few other reasons parents prefer it:
+
+• Items must follow listing standards — clear condition grades, mandatory photos, and category-specific disclosures (e.g. for prams: brakes, folding, accessories). On Facebook, you're at the mercy of whatever the seller writes.
+• No no-shows or cancelled meetups — every order is collected and delivered by The Courier Guy, with full tracking.
+• Payment protection: if the item arrives damaged, fake, wrong, or significantly different from the listing, you can raise a return within 48 hours and we pause the seller's payment immediately.
+• Unsafe and high-risk items (used helmets, recalled products, broken safety gear) are not allowed — we tell sellers what they can't list.
+• You don't share your home address with strangers — only your delivery city is visible to the seller.
+• Disputes follow clear deadlines and default outcomes, so you don't get stuck arguing with a seller who's gone silent.`
+      },
     ],
   },
   {
@@ -174,6 +187,20 @@ Being honest and accurate in your listings is the best way to avoid disputes. In
 For clothing, mention the size on the label, not just the age range. For gear like prams or car seats, mention the weight and whether it folds. For bundles, list what's included.
 
 The more detail you provide, the more confident buyers feel about purchasing. Listings with vague descriptions and poor photos tend to sit unsold.`
+      },
+      {
+        q: 'How am I protected as a seller?',
+        a: `Selling on Parent2Parent is safer than selling on Facebook or Gumtree. Here's how:
+
+• You get paid as long as you describe the item accurately. Buyers can only return for specific reasons (item significantly different from the listing, damaged, wrong item, or counterfeit) — and they have to upload photos as evidence. "I changed my mind" or "it doesn't fit" are not valid reasons.
+• If the buyer doesn't raise a valid issue within 48 hours of delivery, your payment releases automatically. You don't have to chase anyone.
+• If the buyer opens a return but then doesn't ship the item back within 72 hours, the return is auto-closed and your payment releases as normal.
+• No no-shows, no cash, no awkward meetups. Buyers pay upfront and The Courier Guy collects from your address.
+• Your home address is only shared with the courier driver, never with the buyer.
+• Accurate listings are protected. If your photos and condition description are clear, you can defend against a frivolous return.
+• If a return is genuine (item really was damaged or misrepresented), the buyer ships it back to you at their expense before any refund is processed.
+
+Bottom line: be honest in your listings, take clear photos, and you have very little to worry about.`
       },
     ],
   },
