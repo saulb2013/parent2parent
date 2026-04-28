@@ -97,6 +97,21 @@ Before you can list, you'll need to complete your profile with a delivery addres
 Listings go live immediately. You can edit or remove them at any time from your profile page.`
       },
       {
+        q: 'What can I not sell on Parent2Parent?',
+        a: `Because this is a marketplace for parents and children, some items carry safety or hygiene risks and are not allowed:
+
+• Anything subject to a known safety recall — please check the brand's website if you're unsure.
+• Items that are broken, cracked, or missing parts where it would affect safe use (e.g. a pram with broken brakes, a cot with missing screws).
+• Used helmets, bike seats, or impact safety gear — prior impacts can cause invisible damage that compromises the next user's safety.
+• Used mattresses or items that have hygiene concerns we can't reasonably verify.
+• Used breast pump parts that contact milk (bottles, valves, membranes) — feeding equipment may only be sold with these parts replaced by the buyer.
+• Car seats — for now, we recommend not listing used car seats. Expiry dates, accident history, and missing parts are difficult to verify and the safety risk is too high. We're working on a stricter framework before allowing these.
+
+If you list something that falls into one of these categories, the listing may be removed and your account flagged. When in doubt, it's safer not to list it.
+
+Sellers must also confirm at listing time that their item is not subject to a known recall and that any flaws have been disclosed in the photos and description.`
+      },
+      {
         q: 'How much does it cost to sell?',
         a: `Listing items on Parent2Parent is completely free. There is no monthly subscription, no listing fee, and no commission taken from the seller. You keep 100% of your listed price.
 
