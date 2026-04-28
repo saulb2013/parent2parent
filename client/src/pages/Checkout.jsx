@@ -662,7 +662,7 @@ export default function Checkout() {
               {platformFee != null && (
                 <div className="bg-green-50 rounded-lg px-3 py-2.5 mt-3">
                   <p className="text-xs text-green-800 leading-relaxed">
-                    <strong>Buyer protection included.</strong> Your payment is held securely for 48 hours after delivery. Full refund if something is wrong.
+                    <strong>Buyer protection included.</strong> Your payment will not be released to the seller until delivery is confirmed and the 48-hour protection window has passed, unless you confirm receipt earlier.
                   </p>
                 </div>
               )}

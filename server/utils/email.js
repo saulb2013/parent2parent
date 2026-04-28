@@ -113,6 +113,12 @@ async function sendBuyerConfirmation({ buyerEmail, buyerName, sellerName, listin
     <p style="color: #666; font-size: 13px; line-height: 1.6; margin: 0 0 20px;">
       The Courier Guy will keep you in the loop at every step — from collection to delivery — straight to this email. You can also check the live status any time using the button below.
     </p>` : ''}
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+      <p style="margin: 0 0 4px; color: #166534; font-size: 13px; font-weight: 600;">Your payment is protected</p>
+      <p style="margin: 0; color: #166534; font-size: 13px; line-height: 1.5;">
+        Once your item is delivered, you have 48 hours to report a serious issue. If no issue is raised, the seller will be paid.
+      </p>
+    </div>
     <div style="text-align: center; margin: 24px 0 8px;">
       <a href="${trackUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">${ctaLabel}</a>
     </div>

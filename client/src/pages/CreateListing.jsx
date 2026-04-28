@@ -154,7 +154,20 @@ export default function CreateListing() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="font-display text-3xl font-bold text-gray-900 mb-2">Sell an Item</h1>
-      <p className="text-gray-500 mb-8">List your pre-loved item in three easy steps</p>
+      <p className="text-gray-500 mb-6">List your pre-loved item in three easy steps</p>
+
+      {/* Seller Protection Box */}
+      <div className="bg-green-50 border border-green-100 rounded-xl p-4 mb-8 flex gap-3">
+        <svg className="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <div>
+          <p className="text-sm font-semibold text-gray-900 mb-0.5">Accurate listings are protected</p>
+          <p className="text-xs text-gray-700 leading-relaxed">
+            If your photos and condition description are clear, buyers cannot return simply because they changed their mind or the item does not fit.
+          </p>
+        </div>
+      </div>
 
       {/* Progress */}
       <div className="flex items-center gap-2 mb-10">

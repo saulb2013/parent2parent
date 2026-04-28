@@ -31,7 +31,7 @@ export default function Home() {
               Made for parents. Built on trust.
             </h1>
             <p className="mt-4 text-lg text-green-100 max-w-lg mx-auto">
-              Buy and sell quality pre-loved baby and kids gear. Secure payments, door-to-door delivery, and buyer protection on every order.
+              Buy from other parents with confidence. We hold your payment until your item is delivered and the return window has passed.
             </p>
             <div className="mt-8">
               <SearchBar className="max-w-2xl mx-auto" />
@@ -70,7 +70,7 @@ export default function Home() {
             </div>
             <div className="text-left">
               <p className="font-semibold text-sm text-gray-800">Buyer Protection</p>
-              <p className="text-xs text-gray-500">7-day money-back guarantee</p>
+              <p className="text-xs text-gray-500">48-hour return window</p>
             </div>
           </div>
           <div className="flex items-center justify-center gap-3">
