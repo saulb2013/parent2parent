@@ -148,6 +148,10 @@ router.post('/', authenticateToken, upload.array('images', 6), async (req, res) 
     return res.status(400).json({ error: 'All fields are required' });
   }
 
+  if (!req.files || req.files.length < 4) {
+    return res.status(400).json({ error: 'At least 4 photos are required' });
+  }
+
   // Sellers must have a complete collection address before listing —
   // otherwise the courier can't pick up after a sale completes.
   const { rows: sellerRows } = await db.query(

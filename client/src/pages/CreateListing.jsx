@@ -26,10 +26,30 @@ const provinces = [
 ];
 
 const conditions = [
-  { value: 'new', label: 'New', desc: 'Brand new, never used' },
-  { value: 'like_new', label: 'Like New', desc: 'Barely used, excellent condition' },
-  { value: 'good', label: 'Gently used', desc: 'Normal wear, fully functional' },
-  { value: 'fair', label: 'Well used', desc: 'Some wear, but works well' },
+  {
+    value: 'new',
+    label: 'New with tags / unused',
+    desc: 'Never used. Packaging or tags still attached where applicable.',
+    disclose: 'Disclose: missing packaging, opened box, or any storage marks.',
+  },
+  {
+    value: 'like_new',
+    label: 'Like new',
+    desc: 'Used lightly but looks almost new. No visible damage, stains, missing parts or functional issues.',
+    disclose: 'Disclose: any tiny scuffs, name labels, or signs of washing or storage.',
+  },
+  {
+    value: 'good',
+    label: 'Good',
+    desc: 'Clearly used but fully functional and clean. Minor wear only.',
+    disclose: 'Disclose: scuffs, fading, minor marks, loose threads, small cosmetic defects.',
+  },
+  {
+    value: 'fair',
+    label: 'Fair',
+    desc: 'Usable but visibly worn. Buyer should expect obvious signs of use.',
+    disclose: 'Disclose: all visible defects, repairs, missing accessories, stains, or heavy wear.',
+  },
 ];
 
 export default function CreateListing() {
@@ -45,7 +65,7 @@ export default function CreateListing() {
     age_stage: '',
     parcel_size: DEFAULT_PARCEL_SIZE,
     price: '', negotiable: false, province: '', city: '',
-    images: [],
+    images: [], accuracyConfirmed: false,
   });
 
   useEffect(() => {
@@ -68,8 +88,8 @@ export default function CreateListing() {
 
   const canProceed = () => {
     if (step === 1) return form.category_id && form.title && form.condition && form.description;
-    if (step === 2) return form.price;
-    if (step === 3) return form.province && form.city;
+    if (step === 2) return form.price && form.images.length >= 4;
+    if (step === 3) return form.province && form.city && form.accuracyConfirmed;
     return false;
   };
 
@@ -224,7 +244,7 @@ export default function CreateListing() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3">
               {conditions.map(c => (
                 <button
                   key={c.value}
@@ -237,10 +257,17 @@ export default function CreateListing() {
                   }`}
                 >
                   <p className="font-semibold text-sm">{c.label}</p>
-                  <p className="text-xs text-gray-500">{c.desc}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{c.desc}</p>
                 </button>
               ))}
             </div>
+            {form.condition && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                <p className="text-xs text-amber-900">
+                  <strong>{conditions.find(c => c.value === form.condition).disclose}</strong> Be honest in your description and photos — accurate listings are protected from returns.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -278,7 +305,17 @@ export default function CreateListing() {
           <h2 className="font-display text-xl font-semibold">Photos & Price</h2>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Photos (up to 6)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Photos
+              <span className={`ml-2 text-xs font-normal ${form.images.length >= 4 ? 'text-primary' : 'text-amber-600'}`}>
+                {form.images.length}/4 minimum &middot; 6 max
+              </span>
+            </label>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3">
+              <p className="text-xs text-blue-900 leading-relaxed">
+                <strong>What to photograph:</strong> front, back, close-up of the brand or size label, and a close-up of any wear, defect, or stain. Clear photos protect both you and the buyer.
+              </p>
+            </div>
             {form.images.length < 6 && (
               <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary-light transition-colors">
                 <input
@@ -403,6 +440,20 @@ export default function CreateListing() {
               className="input-field"
             />
           </div>
+
+          {/* Accuracy confirmation */}
+          <label className="flex items-start gap-3 cursor-pointer bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <input
+              type="checkbox"
+              checked={form.accuracyConfirmed}
+              onChange={e => updateForm('accuracyConfirmed', e.target.checked)}
+              className="w-5 h-5 mt-0.5 text-primary rounded focus:ring-primary shrink-0"
+            />
+            <div>
+              <p className="text-sm font-semibold text-gray-800">I confirm these photos show the actual item being sold and any flaws have been disclosed.</p>
+              <p className="text-xs text-gray-600 mt-1">Accurate listings are protected from returns. Misleading listings may be removed.</p>
+            </div>
+          </label>
 
           {/* Preview */}
           <div className="card p-6 mt-6">

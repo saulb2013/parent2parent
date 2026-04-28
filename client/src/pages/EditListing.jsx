@@ -10,10 +10,10 @@ const provinces = [
 ];
 
 const conditions = [
-  { value: 'new', label: 'New', desc: 'Brand new, never used' },
-  { value: 'like_new', label: 'Like New', desc: 'Barely used, excellent condition' },
-  { value: 'good', label: 'Gently used', desc: 'Normal wear, fully functional' },
-  { value: 'fair', label: 'Well used', desc: 'Some wear, but works well' },
+  { value: 'new', label: 'New with tags / unused', desc: 'Never used. Packaging or tags still attached where applicable.' },
+  { value: 'like_new', label: 'Like new', desc: 'Used lightly but looks almost new. No visible damage, stains, missing parts or functional issues.' },
+  { value: 'good', label: 'Good', desc: 'Clearly used but fully functional and clean. Minor wear only.' },
+  { value: 'fair', label: 'Fair', desc: 'Usable but visibly worn. Buyer should expect obvious signs of use.' },
 ];
 
 export default function EditListing() {
@@ -230,7 +230,7 @@ export default function EditListing() {
         {/* Condition */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             {conditions.map(c => (
               <button
                 key={c.value}
@@ -243,7 +243,7 @@ export default function EditListing() {
                 }`}
               >
                 <p className="font-semibold text-sm">{c.label}</p>
-                <p className="text-xs text-gray-500">{c.desc}</p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{c.desc}</p>
               </button>
             ))}
           </div>
