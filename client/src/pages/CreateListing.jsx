@@ -25,6 +25,67 @@ const provinces = [
   'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'
 ];
 
+// Category-specific things the seller should mention in their description.
+// Keyed by category slug — falls through if no match.
+const CATEGORY_DISCLOSURES = {
+  'clothing': [
+    'Size and brand',
+    'Stains, marks, or fading',
+    'Name labels written or sewn in',
+    'Missing buttons, broken zips, or holes',
+    'Whether the item has shrunk in the wash',
+  ],
+  'prams-strollers': [
+    'Brand and model',
+    'Whether the brakes work',
+    'Folding mechanism (smooth or stiff)',
+    'Wheel condition',
+    'Accessories included (rain cover, cup holder, etc.)',
+    'Any known faults',
+  ],
+  'cots-beds': [
+    'Dimensions',
+    'Whether all screws/parts are present',
+    'Stability when assembled',
+    'Any damage, scratches, or marks',
+    'Whether it will be sold disassembled',
+  ],
+  'carriers-slings': [
+    'Brand and model',
+    'Condition of straps and buckles',
+    'Any tears, fraying, or worn stitching',
+    'Age and weight range it supports',
+  ],
+  'toys-play': [
+    'Whether it works (and batteries if needed)',
+    'Any missing parts or pieces',
+    'Battery compartment condition (corrosion, leaks)',
+    'Recommended age range',
+  ],
+  'car-seats': [
+    'Brand, model, and weight/age range',
+    'Expiry date (visible on the seat)',
+    'Whether it has been in any accident',
+    'All harness/buckle parts present',
+    'No cracks, fraying, or missing pads',
+  ],
+  'feeding': [
+    'Whether it has been sterilised before sale',
+    'All parts and accessories included',
+    'Any damage, stains, or wear',
+  ],
+  'safety-monitors': [
+    'Whether it powers on and pairs correctly',
+    'All cables, mounts, and accessories included',
+    'Any wear on the unit or sensors',
+  ],
+  'bath-changing': [
+    'Any cracks, mould, or staining',
+    'Whether straps and buckles work',
+    'All parts and accessories included',
+  ],
+};
+
 const conditions = [
   {
     value: 'new',
@@ -284,6 +345,27 @@ export default function CreateListing() {
             </select>
             <p className="text-xs text-gray-400 mt-1">Helps buyers filter for the right age range.</p>
           </div>
+
+          {(() => {
+            const cat = categories.find(c => String(c.id) === String(form.category_id));
+            const prompts = cat ? CATEGORY_DISCLOSURES[cat.slug] : null;
+            if (!prompts) return null;
+            return (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-800 mb-2">Please cover in your description</p>
+                <ul className="space-y-1.5">
+                  {prompts.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-blue-900">
+                      <svg className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
