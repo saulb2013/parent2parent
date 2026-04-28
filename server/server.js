@@ -210,11 +210,91 @@ async function releaseExpiredEscrows() {
     `UPDATE disputes SET status = 'admin_review', escalated_at = NOW(), updated_at = NOW()
      WHERE status = 'awaiting_address' AND created_at <= NOW() - INTERVAL '48 hours'`
   );
-  // Auto-escalate: buyer didn't ship within 72hrs of getting address
-  await pool.query(
-    `UPDATE disputes SET status = 'admin_review', escalated_at = NOW(), updated_at = NOW()
-     WHERE status = 'open' AND return_deadline IS NOT NULL AND return_deadline <= NOW()`
+
+  // Auto-close: buyer didn't ship within 72hrs of getting address.
+  // Per Yaga-style rule, the buyer loses by default — we close the dispute
+  // and resume the seller's escrow timer.
+  const { rows: missedShipping } = await pool.query(
+    `SELECT d.*, o.id as order_id, o.buyer_id, o.seller_id, o.listing_id,
+            buyer.email as buyer_email, buyer.name as buyer_name,
+            seller.email as seller_email, seller.name as seller_name,
+            l.title as listing_title
+     FROM disputes d
+     JOIN orders o ON d.order_id = o.id
+     JOIN users buyer ON o.buyer_id = buyer.id
+     JOIN users seller ON o.seller_id = seller.id
+     JOIN listings l ON o.listing_id = l.id
+     WHERE d.status = 'open' AND d.return_deadline IS NOT NULL AND d.return_deadline <= NOW()`
   );
+  for (const d of missedShipping) {
+    await pool.query(
+      `UPDATE disputes SET status = 'resolved_no_refund',
+        admin_notes = 'Auto-closed: buyer did not ship the return within 72 hours',
+        resolved_at = NOW(), updated_at = NOW()
+       WHERE id = $1`,
+      [d.id]
+    );
+    // Resume escrow with original time remaining (captured at dispute open)
+    const remaining = d.time_remaining_ms || 0;
+    await pool.query(
+      `UPDATE escrow_holds
+       SET status = 'holding', paused_at = NULL,
+           release_due_at = NOW() + INTERVAL '1 millisecond' * $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [remaining, d.escrow_id]
+    );
+    console.log(`[DISPUTE] Auto-closed #${d.id} — buyer missed 72hr return deadline`);
+
+    // Notify buyer + seller
+    try {
+      const { sendBrevoEmail } = require('./utils/email');
+      const clientUrl = process.env.CLIENT_URL || 'https://parent2parent.co.za';
+      const orderUrl = `${clientUrl}/orders/${d.order_id}`;
+      const wrap = (content) => `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; background: #fafafa;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <span style="font-size: 22px; font-weight: bold; color: #2D6A4F;">Parent</span><span style="font-size: 22px; font-weight: bold; color: #F4A261;">2</span><span style="font-size: 22px; font-weight: bold; color: #2D6A4F;">Parent</span>
+          </div>
+          <div style="background: white; border-radius: 12px; padding: 28px; border: 1px solid #eee;">${content}</div>
+          <p style="color: #bbb; font-size: 11px; text-align: center; margin-top: 20px;">Parent2Parent &mdash; Previously loved. Ready for more.</p>
+        </div>`;
+      sendBrevoEmail({
+        to: d.buyer_email,
+        subject: `Return deadline passed for "${d.listing_title}"`,
+        html: wrap(`
+          <h2 style="color: #2D6A4F; font-size: 20px; margin: 0 0 16px;">Your return deadline has passed</h2>
+          <p style="color: #555; line-height: 1.6; margin: 0 0 16px;">Hi ${d.buyer_name.split(' ')[0]},</p>
+          <p style="color: #555; line-height: 1.6; margin: 0 0 16px;">
+            The 72-hour window to ship your return for <strong>"${d.listing_title}"</strong> has passed without a tracking number being submitted, so this return has been closed.
+          </p>
+          <p style="color: #555; line-height: 1.6; margin: 0 0 16px;">
+            If this was a mistake or you've genuinely already shipped the item, please reach out to support and we'll review.
+          </p>
+          <div style="text-align: center; margin: 24px 0 8px;">
+            <a href="${orderUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">View Order</a>
+          </div>
+        `),
+      }).catch(() => {});
+      sendBrevoEmail({
+        to: d.seller_email,
+        subject: `Return deadline passed — payment will release for "${d.listing_title}"`,
+        html: wrap(`
+          <h2 style="color: #2D6A4F; font-size: 20px; margin: 0 0 16px;">Return closed in your favour</h2>
+          <p style="color: #555; line-height: 1.6; margin: 0 0 16px;">Hi ${d.seller_name.split(' ')[0]},</p>
+          <p style="color: #555; line-height: 1.6; margin: 0 0 16px;">
+            The buyer did not ship the return for <strong>"${d.listing_title}"</strong> within the 72-hour window, so the return has been closed and your payment will release as normal.
+          </p>
+          <div style="text-align: center; margin: 24px 0 8px;">
+            <a href="${orderUrl}" style="background: #2D6A4F; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">View Order</a>
+          </div>
+        `),
+      }).catch(() => {});
+    } catch (err) {
+      console.error('[DISPUTE] Failed to send auto-close emails:', err.message);
+    }
+  }
+
   return due.length;
 }
 

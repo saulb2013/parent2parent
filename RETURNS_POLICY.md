@@ -143,21 +143,20 @@ Returns are only accepted if the item **significantly differs from the listing**
 
 ---
 
-## 4. Auto-Escalation Rules
+## 4. Auto-Resolution Rules
 
 The system runs a background check every **5 minutes** that handles:
 
 | Scenario | Condition | Action |
 |----------|-----------|--------|
 | Seller didn't provide return address | Dispute in `awaiting_address` for 48+ hours | Escalated to `admin_review` |
-| Buyer didn't ship the return | Dispute in `open` and `return_deadline` has passed | Escalated to `admin_review` |
+| Buyer didn't ship the return | Dispute in `open` and `return_deadline` has passed | **Auto-closed** as `resolved_no_refund`, escrow timer resumes for seller, both parties emailed |
 
-**What escalation looks like:**
-- Dispute status moves to `admin_review`
-- Admin panel shows red banner: "This dispute was auto-escalated after 48 hours with no resolution. Review and decide."
-- Both buyer and seller see: "Under review. This return has been escalated to our team. We'll be in touch within 24 hours."
+**Seller missed the address deadline:** dispute escalates to admin, who decides refund or no-refund.
 
-**The admin can then decide:** Issue refund or resolve without refund, same as Step 5.
+**Buyer missed the return deadline:** the return is auto-closed with no refund. The buyer gets an email saying their deadline has passed; the seller gets an email saying the return was closed in their favour. The seller's escrow timer resumes from where it was paused.
+
+**Why different handling?** When the seller is unresponsive, the buyer is stuck (they can't ship without an address) — admin involvement is fair. When the buyer is unresponsive, the seller is being held up unfairly through no fault of their own — closing automatically is fair.
 
 ---
 
