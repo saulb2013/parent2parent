@@ -46,7 +46,7 @@ Please note that courier cut-off times may push orders placed late in the day to
         q: 'What if my item arrives damaged or is not as described?',
         a: `You have 48 hours after delivery to raise a dispute if the item is significantly different from the listing, arrived damaged, is counterfeit, or is the wrong item entirely. Do not confirm receipt if something is wrong.
 
-To open a dispute, go to your order page and click "Report a Problem". Select the reason and describe the issue. We'll pause the seller's payment immediately.
+To open a dispute, go to your order page and click "Report a Problem". Select the reason, upload photos showing the issue, and describe what's wrong. We'll pause the seller's payment immediately.
 
 The seller will provide their return address, and you ship the item back (return postage is paid by the buyer, just like in a shop). Once the seller confirms they've received the return, we issue a full refund to your card, including the original delivery fee and the Buyer Protection fee.
 

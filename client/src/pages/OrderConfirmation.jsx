@@ -48,6 +48,13 @@ const DISPUTE_REASONS = [
   'Item is counterfeit / fake',
 ];
 
+const EVIDENCE_PROMPTS = {
+  'Item significantly different from description or photos': 'Upload photos comparing what you received to the listing photos. Show the mismatch clearly.',
+  'Item arrived damaged': 'Upload photos of the damage and the packaging it arrived in. Take these before using the item if possible.',
+  'Wrong item received': 'Upload a clear photo of the item you received. We\'ll compare it to the listing.',
+  'Item is counterfeit / fake': 'Upload close-up photos of brand labels, tags, stitching or any other detail that shows the item is not authentic.',
+};
+
 export default function OrderConfirmation() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -60,6 +67,7 @@ export default function OrderConfirmation() {
   const [showDispute, setShowDispute] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDesc, setDisputeDesc] = useState('');
+  const [disputePhotos, setDisputePhotos] = useState([]);
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
   const [disputeError, setDisputeError] = useState('');
   const [returnTracking, setReturnTracking] = useState('');
@@ -105,18 +113,25 @@ export default function OrderConfirmation() {
 
   const handleOpenDispute = async () => {
     if (!disputeReason) { setDisputeError('Please select a reason'); return; }
+    if (disputePhotos.length === 0) { setDisputeError('Please upload at least one photo as evidence'); return; }
     setDisputeSubmitting(true);
     setDisputeError('');
     try {
+      const formData = new FormData();
+      formData.append('orderId', order.id);
+      formData.append('reason', disputeReason);
+      formData.append('description', disputeDesc);
+      disputePhotos.forEach(file => formData.append('evidence', file));
+
       const res = await fetch('/api/disputes/open', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ orderId: order.id, reason: disputeReason, description: disputeDesc }),
+        body: formData,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setShowDispute(false);
+      setDisputePhotos([]);
       fetchOrder();
     } catch (err) {
       setDisputeError(err.message);
@@ -328,7 +343,7 @@ export default function OrderConfirmation() {
         {showDispute && (
           <div className="border border-red-200 rounded-xl p-5 mb-6 bg-red-50/50">
             <h3 className="font-display text-lg font-semibold text-gray-900 mb-3">Report a Problem</h3>
-            <p className="text-xs text-gray-500 mb-4">You have 48 hours after delivery to raise a return if the item significantly differs from the listing. The seller's payment will be paused while this is resolved. Return postage is paid by the buyer.</p>
+            <p className="text-xs text-gray-500 mb-4">Use this only where the item is materially not as described, damaged, wrong, or fake. Please upload photos so we can resolve this fairly. Return postage is paid by the buyer.</p>
 
             <div className="space-y-3">
               <div>
@@ -338,6 +353,38 @@ export default function OrderConfirmation() {
                   {DISPUTE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
+
+              {disputeReason && EVIDENCE_PROMPTS[disputeReason] && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs text-amber-900">
+                    <strong>What to upload:</strong> {EVIDENCE_PROMPTS[disputeReason]}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Photos <span className="text-red-600">*</span>
+                  <span className="text-xs font-normal text-gray-500 ml-1">(up to 6, max 5MB each)</span>
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => setDisputePhotos(Array.from(e.target.files).slice(0, 6))}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-primary-dark file:cursor-pointer"
+                />
+                {disputePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {disputePhotos.map((file, i) => (
+                      <div key={i} className="relative aspect-square bg-gray-100 rounded-md overflow-hidden">
+                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Details (optional)</label>
                 <textarea
@@ -364,7 +411,21 @@ export default function OrderConfirmation() {
           <div className="border border-yellow-200 rounded-xl p-5 mb-6 bg-yellow-50/50">
             <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">Return in Progress</h3>
             <p className="text-sm text-gray-600 mb-1"><strong>Reason:</strong> {order.dispute_reason}</p>
-            <p className="text-xs text-gray-400 mb-4">Opened {new Date(order.dispute_created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            {order.dispute_description && <p className="text-sm text-gray-600 mb-2">{order.dispute_description}</p>}
+            <p className="text-xs text-gray-400 mb-3">Opened {new Date(order.dispute_created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+
+            {Array.isArray(order.dispute_evidence_photos) && order.dispute_evidence_photos.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Evidence photos</p>
+                <div className="flex flex-wrap gap-2">
+                  {order.dispute_evidence_photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-md overflow-hidden bg-gray-200 hover:ring-2 hover:ring-primary">
+                      <img src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Step 1: Awaiting seller's return address */}
             {order.dispute_status === 'awaiting_address' && isBuyer && (

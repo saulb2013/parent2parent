@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 const { sendAdminAlert, sendBrevoEmail } = require('../utils/email');
+const upload = require('../middleware/upload');
 const router = express.Router();
 
 function emailWrapper(content) {
@@ -19,13 +20,15 @@ function emailWrapper(content) {
   `;
 }
 
-// Buyer opens a dispute
-router.post('/open', authenticateToken, async (req, res) => {
+// Buyer opens a dispute (multipart so they can upload evidence photos)
+router.post('/open', authenticateToken, upload.array('evidence', 6), async (req, res) => {
   try {
     const pool = req.app.get('db');
     const { orderId, reason, description } = req.body;
+    const evidencePhotos = (req.files || []).map(f => f.path);
 
     if (!reason?.trim()) return res.status(400).json({ error: 'Reason is required' });
+    if (evidencePhotos.length === 0) return res.status(400).json({ error: 'At least one photo is required as evidence' });
 
     const { rows: orders } = await pool.query(
       'SELECT * FROM orders WHERE id = $1 AND buyer_id = $2',
@@ -73,9 +76,9 @@ router.post('/open', authenticateToken, async (req, res) => {
 
     // Create dispute — status starts as 'awaiting_address' (seller must provide return address)
     const { rows: disputes } = await pool.query(
-      `INSERT INTO disputes (order_id, escrow_id, raised_by, reason, description, status)
-       VALUES ($1, $2, $3, $4, $5, 'awaiting_address') RETURNING *`,
-      [orderId, escrow.id, req.user.id, reason, description || '']
+      `INSERT INTO disputes (order_id, escrow_id, raised_by, reason, description, status, evidence_photos)
+       VALUES ($1, $2, $3, $4, $5, 'awaiting_address', $6::jsonb) RETURNING *`,
+      [orderId, escrow.id, req.user.id, reason, description || '', JSON.stringify(evidencePhotos)]
     );
 
     console.log(`[DISPUTE] Opened for order #${orderId}: ${reason}`);

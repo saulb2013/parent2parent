@@ -91,6 +91,7 @@ async function runMigrations() {
     "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS seller_address_provided_at TIMESTAMPTZ",
     "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS return_shipped_at TIMESTAMPTZ",
     "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS return_deadline TIMESTAMPTZ",
+    "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS evidence_photos JSONB DEFAULT '[]'::jsonb",
   ];
   for (const sql of migrations) {
     try { await pool.query(sql); } catch {}

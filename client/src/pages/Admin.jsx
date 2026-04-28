@@ -346,6 +346,18 @@ export default function Admin() {
                     <div className="bg-gray-50 rounded-lg p-3 text-sm mb-3">
                       <p className="text-gray-700"><strong>Reason:</strong> {d.reason}</p>
                       {d.description && <p className="text-gray-500 mt-1">{d.description}</p>}
+                      {Array.isArray(d.evidence_photos) && d.evidence_photos.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Evidence ({d.evidence_photos.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {d.evidence_photos.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-md overflow-hidden bg-gray-200 hover:ring-2 hover:ring-primary">
+                                <img src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">

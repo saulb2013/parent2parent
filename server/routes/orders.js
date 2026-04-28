@@ -183,8 +183,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
         (SELECT url FROM listing_images WHERE listing_id = o.listing_id AND is_primary = true LIMIT 1) as listing_image,
         seller.name as seller_name, buyer.name as buyer_name,
         eh.id as escrow_id, eh.status as escrow_status, eh.release_due_at, eh.buyer_confirmed_at, eh.paused_at,
-        d.id as dispute_id, d.status as dispute_status, d.reason as dispute_reason, d.created_at as dispute_created_at,
-        d.seller_return_address, d.return_tracking as dispute_return_tracking, d.return_deadline, d.seller_address_provided_at
+        d.id as dispute_id, d.status as dispute_status, d.reason as dispute_reason, d.description as dispute_description, d.created_at as dispute_created_at,
+        d.seller_return_address, d.return_tracking as dispute_return_tracking, d.return_deadline, d.seller_address_provided_at,
+        d.evidence_photos as dispute_evidence_photos
        FROM orders o
        JOIN listings l ON o.listing_id = l.id
        JOIN users seller ON o.seller_id = seller.id
