@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 export default function Login() {
   const { login } = useAuth();
@@ -69,6 +70,16 @@ export default function Login() {
 
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
+          )}
+
+          <GoogleSignInButton onSuccess={() => navigate('/')} />
+
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs uppercase tracking-wider text-gray-400">or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">

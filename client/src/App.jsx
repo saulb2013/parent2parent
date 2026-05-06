@@ -26,7 +26,7 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import TermsAcceptanceModal from './components/TermsAcceptanceModal';
 
-const CURRENT_TERMS_VERSION = '2026-05-06';
+const CURRENT_TERMS_VERSION = '2026-05-13';
 
 function Layout({ children }) {
   const location = useLocation();

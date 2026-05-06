@@ -2,7 +2,7 @@ export default function Privacy() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="font-display text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-      <p className="text-sm text-gray-500 mb-10">Last updated: 6 May 2026</p>
+      <p className="text-sm text-gray-500 mb-10">Last updated: 6 May 2026 (revised to add Google sign-in)</p>
 
       <div className="prose prose-sm max-w-none text-gray-700 space-y-6 leading-relaxed">
 
@@ -32,7 +32,7 @@ export default function Privacy() {
 
           <h3 className="font-semibold text-gray-800 mt-4 mb-2">2.1 Information you provide</h3>
           <ul className="list-disc pl-6 space-y-1.5">
-            <li><strong>Account information:</strong> name, email address, password (hashed), province, mobile number.</li>
+            <li><strong>Account information:</strong> name, email address, password (hashed), province, mobile number. If you sign up or sign in using Google, we receive your name, email address, profile photo URL and a stable Google account identifier instead of a password.</li>
             <li><strong>Seller profile information:</strong> physical street address, city, postal code, profile photo, bio.</li>
             <li><strong>Listing content:</strong> photographs, descriptions, prices and condition information you upload.</li>
             <li><strong>Order information:</strong> delivery address, delivery instructions, the items you buy or sell.</li>
@@ -99,6 +99,7 @@ export default function Privacy() {
             <li><strong>Brevo (Sendinblue SAS):</strong> transactional and marketing email delivery.</li>
             <li><strong>Cloudinary:</strong> hosting of listing and dispute evidence photos.</li>
             <li><strong>Google Maps API:</strong> address validation and delivery routing.</li>
+            <li><strong>Google (Sign in with Google):</strong> if you choose to sign up or log in using your Google account, Google provides us with the limited profile information described in section 2.1 (name, email, profile photo URL, account identifier). Google's own use of your data is governed by its <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.</li>
           </ul>
 
           <h3 className="font-semibold text-gray-800 mt-4 mb-2">Legal and regulatory</h3>

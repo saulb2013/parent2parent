@@ -94,6 +94,8 @@ async function runMigrations() {
     "ALTER TABLE disputes ADD COLUMN IF NOT EXISTS evidence_photos JSONB DEFAULT '[]'::jsonb",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_version TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE",
+    "ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL",
   ];
   for (const sql of migrations) {
     try { await pool.query(sql); } catch {}

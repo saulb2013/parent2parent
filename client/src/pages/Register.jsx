@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const provinces = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -84,6 +85,24 @@ export default function Register() {
 
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
+          )}
+
+          <GoogleSignInButton onSuccess={() => navigate('/welcome')} />
+
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <>
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs uppercase tracking-wider text-gray-400">or sign up with email</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <p className="text-xs text-gray-500 text-center mb-4">
+                By continuing with Google, you agree to our{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Use</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
+              </p>
+            </>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">

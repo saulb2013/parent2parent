@@ -2,14 +2,29 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
 const { sendBrevoEmail } = require('../utils/email');
 
 const router = express.Router();
 
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+function issueAuthCookie(res, user) {
+  const payload = { id: user.id, name: user.name, email: user.email };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
+
 // Bump this when Terms or Privacy materially change. Existing users
 // with an older version (or null) will be prompted to re-accept.
-const TERMS_VERSION = '2026-05-06';
+const TERMS_VERSION = '2026-05-13';
 
 router.post('/register', async (req, res) => {
   const { name, email, password, province, city, phone, acceptedTerms } = req.body;
@@ -54,6 +69,85 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Sign in or sign up with Google. Client sends a Google ID token,
+// we verify it against Google's public keys, then find-or-create the
+// user. If the email already exists with a different provider, we
+// auto-link the Google account (option A from the design discussion).
+router.post('/google', async (req, res) => {
+  if (!googleClient) {
+    return res.status(503).json({ error: 'Google sign-in is not configured on this server' });
+  }
+
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'Missing Google credential' });
+
+  const db = req.app.get('db');
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    // Required claims
+    const googleSub = payload.sub;
+    const email = payload.email;
+    const emailVerified = payload.email_verified;
+    const name = payload.name || (email ? email.split('@')[0] : 'New User');
+
+    if (!email || !emailVerified) {
+      return res.status(400).json({ error: 'Google account email is not verified' });
+    }
+
+    // Find by google_sub first (existing Google user)
+    let { rows } = await db.query('SELECT * FROM users WHERE google_sub = $1', [googleSub]);
+    let user = rows[0];
+
+    if (!user) {
+      // Try by email — auto-link if a password account exists
+      const byEmail = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (byEmail.rows.length) {
+        await db.query('UPDATE users SET google_sub = $1 WHERE id = $2', [googleSub, byEmail.rows[0].id]);
+        user = { ...byEmail.rows[0], google_sub: googleSub };
+        console.log(`[AUTH] Linked Google to existing account #${user.id}`);
+      } else {
+        // Brand new user — no password, no terms acceptance yet (modal will fire)
+        const created = await db.query(
+          `INSERT INTO users (name, email, google_sub) VALUES ($1, $2, $3)
+           RETURNING id, name, email, avatar_url, province, city, phone, street_address, unit, postal_code, primary_role, terms_accepted_at, terms_version`,
+          [name, email, googleSub]
+        );
+        user = created.rows[0];
+        console.log(`[AUTH] Created new Google user #${user.id} (${email})`);
+      }
+    }
+
+    issueAuthCookie(res, user);
+
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        province: user.province,
+        city: user.city,
+        phone: user.phone,
+        street_address: user.street_address,
+        unit: user.unit,
+        postal_code: user.postal_code,
+        primary_role: user.primary_role,
+        terms_accepted_at: user.terms_accepted_at,
+        terms_version: user.terms_version,
+      },
+    });
+  } catch (err) {
+    console.error('[AUTH] Google sign-in failed:', err.message);
+    res.status(401).json({ error: 'Could not verify Google sign-in' });
   }
 });
 
