@@ -30,7 +30,7 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      await register(form);
+      await register({ ...form, acceptedTerms: true });
       navigate('/welcome');
     } catch (err) {
       setError(err.message);

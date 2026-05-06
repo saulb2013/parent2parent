@@ -24,6 +24,9 @@ import Admin from './pages/Admin';
 import RoleSelect from './pages/RoleSelect';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import TermsAcceptanceModal from './components/TermsAcceptanceModal';
+
+const CURRENT_TERMS_VERSION = '2026-05-06';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -40,11 +43,20 @@ function Layout({ children }) {
     return <Navigate to={user.primary_role === 'seller' ? '/sell' : '/browse'} replace />;
   }
 
+  // Existing users who have not yet accepted the current Terms must do so
+  // before continuing. /terms and /privacy themselves stay accessible so
+  // they can read what they're agreeing to.
+  const onPolicyPage = location.pathname === '/terms' || location.pathname === '/privacy';
+  const needsTermsAcceptance = !loading && user
+    && user.terms_version !== CURRENT_TERMS_VERSION
+    && !onPolicyPage;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {!hideChrome && <Navbar />}
       <main className="flex-1">{children}</main>
       {!hideChrome && <Footer />}
+      {needsTermsAcceptance && <TermsAcceptanceModal />}
     </div>
   );
 }

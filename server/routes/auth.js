@@ -7,12 +7,20 @@ const { sendBrevoEmail } = require('../utils/email');
 
 const router = express.Router();
 
+// Bump this when Terms or Privacy materially change. Existing users
+// with an older version (or null) will be prompted to re-accept.
+const TERMS_VERSION = '2026-05-06';
+
 router.post('/register', async (req, res) => {
-  const { name, email, password, province, city, phone } = req.body;
+  const { name, email, password, province, city, phone, acceptedTerms } = req.body;
   const db = req.app.get('db');
 
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required' });
+  }
+
+  if (!acceptedTerms) {
+    return res.status(400).json({ error: 'You must agree to the Terms of Use and Privacy Policy to register' });
   }
 
   try {
@@ -23,11 +31,16 @@ router.post('/register', async (req, res) => {
 
     const password_hash = bcrypt.hashSync(password, 10);
     const { rows } = await db.query(
-      'INSERT INTO users (name, email, password_hash, province, city, phone) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
-      [name, email, password_hash, province || null, city || null, phone || null]
+      `INSERT INTO users (name, email, password_hash, province, city, phone, terms_accepted_at, terms_version)
+       VALUES ($1,$2,$3,$4,$5,$6, NOW(), $7) RETURNING id, terms_accepted_at, terms_version`,
+      [name, email, password_hash, province || null, city || null, phone || null, TERMS_VERSION]
     );
 
-    const user = { id: rows[0].id, name, email, primary_role: null };
+    const user = {
+      id: rows[0].id, name, email, primary_role: null,
+      terms_accepted_at: rows[0].terms_accepted_at,
+      terms_version: rows[0].terms_version,
+    };
     const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('token', token, {
@@ -41,6 +54,21 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Existing user accepts the current terms (re-acceptance flow).
+router.post('/accept-terms', authenticateToken, async (req, res) => {
+  const db = req.app.get('db');
+  try {
+    await db.query(
+      'UPDATE users SET terms_accepted_at = NOW(), terms_version = $1 WHERE id = $2',
+      [TERMS_VERSION, req.user.id]
+    );
+    res.json({ accepted_at: new Date().toISOString(), version: TERMS_VERSION });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to record acceptance' });
   }
 });
 
@@ -69,7 +97,7 @@ router.post('/login', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({ user: { ...payload, avatar_url: user.avatar_url, province: user.province, city: user.city, phone: user.phone, street_address: user.street_address, unit: user.unit, postal_code: user.postal_code, primary_role: user.primary_role } });
+    res.json({ user: { ...payload, avatar_url: user.avatar_url, province: user.province, city: user.city, phone: user.phone, street_address: user.street_address, unit: user.unit, postal_code: user.postal_code, primary_role: user.primary_role, terms_accepted_at: user.terms_accepted_at, terms_version: user.terms_version } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
@@ -80,7 +108,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   const db = req.app.get('db');
   try {
     const { rows } = await db.query(
-      'SELECT id, name, email, avatar_url, province, city, phone, bio, street_address, unit, postal_code, primary_role, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, province, city, phone, bio, street_address, unit, postal_code, primary_role, terms_accepted_at, terms_version, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });
