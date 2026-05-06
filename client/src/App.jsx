@@ -22,6 +22,8 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import PaymentReturn from './pages/PaymentReturn';
 import Admin from './pages/Admin';
 import RoleSelect from './pages/RoleSelect';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -72,6 +74,8 @@ export default function App() {
             <Route path="/faqs" element={<FAQs />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/welcome" element={<RoleSelect />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

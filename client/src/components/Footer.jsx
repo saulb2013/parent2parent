@@ -55,9 +55,15 @@ export default function Footer() {
           <p className="text-sm text-green-300">
             Made with love in South Africa
           </p>
-          <p className="text-xs text-green-400">
-            &copy; {new Date().getFullYear()} Parent2Parent. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-x-4 text-xs text-green-300">
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Terms of Use</a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
+            </div>
+            <p className="text-xs text-green-400">
+              &copy; {new Date().getFullYear()} Parent2Parent (Pty) Ltd.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

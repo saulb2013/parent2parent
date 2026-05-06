@@ -13,6 +13,7 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '', email: '', password: '', province: '', phone: ''
   });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +21,10 @@ export default function Register() {
     e.preventDefault();
     if (form.password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms of Use and Privacy Policy to continue');
       return;
     }
     setLoading(true);
@@ -140,10 +145,24 @@ export default function Register() {
               />
               <p className="text-xs text-gray-400 mt-1">The courier will call this number if they can't find you on collection or delivery day.</p>
             </div>
+            <label className="flex items-start gap-3 cursor-pointer pt-2">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                className="w-5 h-5 mt-0.5 text-primary rounded focus:ring-primary shrink-0"
+              />
+              <span className="text-sm text-gray-700 leading-relaxed">
+                I agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">Terms of Use</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">Privacy Policy</a>.
+              </span>
+            </label>
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full disabled:opacity-50"
+              disabled={loading || !agreed}
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
