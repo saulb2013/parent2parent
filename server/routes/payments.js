@@ -89,7 +89,7 @@ async function handleOrderPaid(pool, orderId) {
   // Auto-create TCG shipment for delivery orders
   if (order.delivery_method === 'delivery' && !order.shipment_id && process.env.TCG_API_KEY) {
     try {
-      const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.shiplogic.com';
+      const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.portal.thecourierguy.co.za';
       const { rows: fullOrder } = await pool.query(
         `SELECT o.*, seller.name as seller_name, seller.phone as seller_phone,
           seller.email as seller_email, seller.city as seller_city, seller.province as seller_province, seller.street_address as seller_street_address, seller.postal_code as seller_postal_code,

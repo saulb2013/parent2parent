@@ -5,7 +5,7 @@ const { verifyOrderToken } = require('../utils/orderTokens');
 
 const router = express.Router();
 
-const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.shiplogic.com';
+const TCG_BASE_URL = process.env.TCG_API_URL || 'https://api.portal.thecourierguy.co.za';
 // Note: sandbox vs production is determined by the API key, not the URL
 const TCG_API_KEY = process.env.TCG_API_KEY;
 
